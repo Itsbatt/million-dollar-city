@@ -2,6 +2,7 @@ node_modules/
 .edge_temp*
 .edge_suite_profile/
 .edge_test_profile/
+.edge_test_improv/
 *.log
 .DS_Store
 Thumbs.db
