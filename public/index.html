@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>MILLION DOLLAR CITY | 3D Open World Multiplayer Casino</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎰</text></svg>">
+  <script>
+    window.__clientErrors = [];
+    window.addEventListener('error', function(e) {
+      var data = {
+        message: e.message || (e.target && e.target.src ? 'Failed to load ' + e.target.src : 'Script error'),
+        filename: e.filename || (e.target && e.target.src ? e.target.src : 'unknown'),
+        lineno: e.lineno,
+        colno: e.colno,
+        stack: e.error ? e.error.stack : 'no stack',
+        type: 'error'
+      };
+      window.__clientErrors.push(data);
+      console.error('[Error Tracker]', data);
+      try {
+        fetch('/api/client-error', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+      } catch(err) {}
+    }, true);
+
+    window.addEventListener('unhandledrejection', function(e) {
+      var data = {
+        message: String(e.reason),
+        stack: e.reason && e.reason.stack ? e.reason.stack : 'no stack',
+        type: 'unhandledrejection'
+      };
+      window.__clientErrors.push(data);
+      console.error('[Unhandled Rejection]', data);
+      try {
+        fetch('/api/client-error', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+      } catch(err) {}
+    });
+  </script>
+</head>
+<body>
+
+  <!-- WebGL 3D Canvas Container -->
+  <div id="game-container"></div>
+
+  <!-- HUD Master Layer -->
+  <div id="hud">
+    <!-- Top Center Citizen Session Bar -->
+    <div class="hud-top-center">
+      <button id="open-auth-btn" class="hud-citizen-badge">
+        <span>👤</span> <span id="hud-citizen-name">CIUDADANO</span> • <span id="online-players-pill" style="color:#00ff88;">1 ONLINE</span>
+      </button>
+    </div>
+
+    <!-- Top Right Financial & Goal Status -->
+    <div class="hud-top-right">
+      <div class="hud-money-card">
+        <div class="hud-cash-row">
+          <span class="hud-cash-label">EFECTIVO</span>
+          <span id="hud-cash" class="hud-cash-value">$250</span>
+        </div>
+        <div class="hud-bank-row">
+          <span>BANCO:</span>
+          <span id="hud-bank">$500</span>
+        </div>
+      </div>
+
+      <!-- Goal Progress to $1,000,000 -->
+      <div class="hud-goal-box">
+        <div class="hud-goal-header">
+          <span>OBJETIVO: 1.000.000 $</span>
+          <span id="goal-percent-text">0.1%</span>
+        </div>
+        <div class="hud-goal-bar">
+          <div id="goal-progress-bar"></div>
+        </div>
+      </div>
+
+      <!-- Wanted Level Stars -->
+      <div id="wanted-stars" class="hud-wanted-stars">
+        <span class="star">★</span>
+        <span class="star">★</span>
+        <span class="star">★</span>
+        <span class="star">★</span>
+        <span class="star">★</span>
+      </div>
+
+      <!-- Weapon & Ammo Display -->
+      <div class="hud-weapon-card">
+        <span id="weapon-name">PISTOLA 9MM</span>
+        <span id="ammo-display">12 / 60</span>
+      </div>
+    </div>
+
+    <!-- Top Left Mission Banner & Multiplayer Chat -->
+    <div class="hud-top-left">
+      <div class="hud-mission-banner">
+        <div class="mission-tag">OBJETIVO ACTUAL</div>
+        <div id="mission-title">Bautismo en el Diamond Strip</div>
+        <div id="mission-objective">Dirígete al Casino The Royal Mirage en el Diamond Strip</div>
+      </div>
+
+      <div class="hud-chat-box">
+        <div id="chat-messages">
+          <div class="chat-line">
+            <span class="chat-time">[12:00]</span>
+            <b class="chat-user">Sistema:</b>
+            <span class="chat-text">Servidor Multijugador en Línea. Abre el móvil con [M] para transferencias, chat y atracos.</span>
+          </div>
+        </div>
+        <input type="text" id="chat-input" placeholder="Pulsa Enter para chatear globalmente..." maxlength="120">
+      </div>
+    </div>
+
+    <!-- Bottom Left Radar & Vitals -->
+    <div class="hud-bottom-left">
+      <div class="radar-wrapper">
+        <canvas id="radar-canvas" width="180" height="180"></canvas>
+      </div>
+      <div class="vitals-box">
+        <div class="bar-wrapper">
+          <div id="health-bar-fill"></div>
+        </div>
+        <div class="bar-wrapper">
+          <div id="armor-bar-fill"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Center Contextual Prompt -->
+    <div id="interaction-prompt">[E] Interactuar</div>
+
+    <!-- Center Dynamic Tactical Reticle & Hitmarker -->
+    <div id="crosshair" class="hud-crosshair">
+      <div class="crosshair-dot"></div>
+      <div class="crosshair-line top"></div>
+      <div class="crosshair-line bottom"></div>
+      <div class="crosshair-line left"></div>
+      <div class="crosshair-line right"></div>
+      <div id="hitmarker" class="hitmarker-box">
+        <div class="hitmarker-line d1"></div>
+        <div class="hitmarker-line d2"></div>
+      </div>
+    </div>
+
+    <!-- Fullscreen Sniper Scope Overlay -->
+    <div id="sniper-scope" class="sniper-scope-overlay">
+      <div class="scope-vignette"></div>
+      <div class="scope-lens">
+        <div class="scope-crosshair-v"></div>
+        <div class="scope-crosshair-h"></div>
+        <div class="scope-mil-dot d1"></div>
+        <div class="scope-mil-dot d2"></div>
+        <div class="scope-mil-dot d3"></div>
+        <div class="scope-mil-dot d4"></div>
+        <div class="scope-info-top">CALIBRE .50 BMG • OPTIC 12X</div>
+        <div class="scope-info-bottom">ELEV: +0.0 • WIND: 2.4 M/S • STABILIZED</div>
+      </div>
+    </div>
+
+    <!-- Bottom Right Controls Help -->
+    <div class="hud-bottom-right-hints">
+      <span><span class="hint-pill">WASD</span> Mover</span>
+      <span><span class="hint-pill">Shift</span> Correr</span>
+      <span><span class="hint-pill">Click Der</span> Apuntar ADS</span>
+      <span><span class="hint-pill">Espacio</span> Freno / Salto</span>
+      <span><span class="hint-pill">F</span> Coche</span>
+      <span><span class="hint-pill">E</span> Interactuar</span>
+      <span><span class="hint-pill">1-5</span> Armas</span>
+      <span><span class="hint-pill">M</span> Móvil</span>
+      <span><span class="hint-pill gold">F2</span> Admin OP</span>
+    </div>
+  </div>
+
+  <!-- Notification Banner -->
+  <div id="phone-notif-banner" class="phone-notif-toast"></div>
+
+  <!-- ==============================================================
+       AUTH & PASSPORT MODAL (LOGIN / REGISTER)
+       ============================================================== -->
+  <div id="auth-modal" class="game-modal">
+    <div class="modal-content-panel" style="max-width:440px; text-align:center;">
+      <div class="modal-header">
+        <div id="auth-modal-title" class="modal-title" style="font-size:18px;">PASAPORTE DE MILLION DOLLAR CITY</div>
+        <button id="auth-close-btn" class="modal-close-btn">✕</button>
+      </div>
+
+      <p style="font-size:12px; color:#aaa; margin-bottom:16px;">
+        Inicia sesión o regístrate para guardar tu dinero, reputación, vehículos y organizar atracos multijugador.
+      </p>
+
+      <form id="auth-form" style="display:flex; flex-direction:column; gap:12px;">
+        <input type="text" id="auth-username-input" class="auth-input" placeholder="Nombre de Ciudadano" required maxlength="20">
+        <input type="password" id="auth-password-input" class="auth-input" placeholder="Contraseña Segura" required minlength="4">
+
+        <div id="auth-error-msg" style="color:#ff3344; font-size:11px; min-height:16px;"></div>
+
+        <button type="submit" id="auth-submit-btn" class="casino-btn" style="width:100%; padding:12px;">ENTRAR A LA CIUDAD</button>
+      </form>
+
+      <div style="margin-top:14px; font-size:11px;">
+        <a id="auth-switch-mode-btn" href="#" style="color:#00f0ff; text-decoration:none;">¿No tienes cuenta? Regístrate aquí</a>
+      </div>
+      <div style="margin-top:10px; display:flex; gap:8px; justify-content:center;">
+        <button id="auth-guest-btn" class="casino-btn secondary" style="font-size:10px; padding:6px 14px;">Continuar como Invitado</button>
+        <button id="auth-admin-quick-btn" class="casino-btn" style="font-size:10px; padding:6px 14px; background:linear-gradient(135deg, #ffd700, #ff8800); color:#000; font-weight:800; border:none; box-shadow:0 0 10px rgba(255,215,0,0.5);">⚡ Entrar como OP (Itsbat_)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==============================================================
+       SMARTPHONE ("DIAMOND OS") WITH 6 REAL APPLICATIONS
+       ============================================================== -->
+  <div id="smartphone-container">
+    <div class="phone-screen">
+      <!-- Status bar -->
+      <div class="phone-status-bar">
+        <span>MAZE 5G</span>
+        <span id="phone-status-time">12:00</span>
+        <span>100% 🔋</span>
+      </div>
+
+      <!-- App View: Home Screen -->
+      <div id="phone-view-home" class="phone-screen-view active">
+        <div style="text-align:center; margin-top:12px;">
+          <div style="font-size:11px; color:#888; letter-spacing:1px;">DIAMOND OS 2.0</div>
+          <div style="font-size:17px; font-weight:800; color:#ffd700;">MILLION DOLLAR CITY</div>
+        </div>
+
+        <div class="phone-app-grid">
+          <div class="phone-app-icon" data-app="bank">
+            <div class="app-icon-img icon-bank">🏦</div>
+            <div class="app-icon-label">Maze Bank</div>
+          </div>
+          <div class="phone-app-icon" data-app="contacts">
+            <div class="app-icon-img icon-contacts">👥</div>
+            <div class="app-icon-label">Contactos</div>
+          </div>
+          <div class="phone-app-icon" data-app="chat">
+            <div class="app-icon-img icon-chat">💬</div>
+            <div class="app-icon-label">Chat</div>
+          </div>
+          <div class="phone-app-icon" data-app="heists">
+            <div class="app-icon-img icon-heists">🎯</div>
+            <div class="app-icon-label">Atracos</div>
+          </div>
+          <div class="phone-app-icon" data-app="map">
+            <div class="app-icon-img icon-map">🗺️</div>
+            <div class="app-icon-label">Mapa GPS</div>
+          </div>
+          <div class="phone-app-icon" data-app="market">
+            <div class="app-icon-img icon-market">🛒</div>
+            <div class="app-icon-label">Mercado</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- App View 1: Maze Bank Online & Transfers -->
+      <div id="phone-view-bank" class="phone-screen-view">
+        <div class="phone-app-header-bar">
+          <button class="phone-back-btn" data-back="home">◀ Inicio</button>
+          <div class="phone-app-header" style="margin:0; border:none; padding:0;">🏦 MAZE BANK</div>
+          <div style="width:50px;"></div>
+        </div>
+        <div class="phone-bank-card">
+          <div style="font-size:11px; color:#aaa;">PATRIMONIO TOTAL</div>
+          <div id="phone-bank-total" style="font-size:20px; font-weight:bold; color:#ffd700;">$750</div>
+          <div style="display:flex; justify-content:space-between; margin-top:8px; font-size:11px;">
+            <span>Efectivo: <b id="phone-bank-cash" style="color:#00ff88;">$250</b></span>
+            <span>Cuenta: <b id="phone-bank-balance" style="color:#00f0ff;">$500</b></span>
+          </div>
+        </div>
+
+        <!-- Wire Transfer Form -->
+        <div class="phone-section-title">TRANSFERIR FONDOS</div>
+        <form id="phone-transfer-form" style="display:flex; flex-direction:column; gap:6px;">
+          <input type="text" id="phone-transfer-recipient" class="phone-input" placeholder="Usuario destinatario" required>
+          <input type="number" id="phone-transfer-amount" class="phone-input" placeholder="Cantidad ($)" min="1" required>
+          <input type="text" id="phone-transfer-note" class="phone-input" placeholder="Concepto (opcional)">
+          <div id="phone-transfer-status" style="font-size:10px; min-height:14px;"></div>
+          <button type="submit" class="casino-btn" style="padding:8px; font-size:11px;">ENVIAR TRANSFERENCIA 💸</button>
+        </form>
+
+        <div class="phone-section-title" style="margin-top:10px;">ÚLTIMOS MOVIMIENTOS</div>
+        <div id="phone-trans-list" class="phone-scroll-list"></div>
+      </div>
+
+      <!-- App View 2: Contacts & Online Citizens -->
+      <div id="phone-view-contacts" class="phone-screen-view">
+        <div class="phone-app-header-bar">
+          <button class="phone-back-btn" data-back="home">◀ Inicio</button>
+          <div class="phone-app-header" style="margin:0; border:none; padding:0;">👥 CONTACTOS</div>
+          <div style="width:50px;"></div>
+        </div>
+        <div style="font-size:10px; color:#aaa; margin-bottom:8px;">Jugadores en el mismo servidor:</div>
+        <div id="phone-contacts-list" class="phone-scroll-list"></div>
+      </div>
+
+      <!-- App View 3: Multi-Channel Real-Time Chat -->
+      <div id="phone-view-chat" class="phone-screen-view">
+        <div class="phone-app-header-bar">
+          <button class="phone-back-btn" data-back="home">◀ Inicio</button>
+          <div class="phone-app-header" style="margin:0; border:none; padding:0;">💬 CHAT</div>
+          <div id="chat-recipient-indicator" style="font-size:10px; color:#ff007f; max-width:80px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"></div>
+        </div>
+        <div class="phone-chat-tabs-bar">
+          <button class="phone-chat-tab active" data-channel="global">Global</button>
+          <button class="phone-chat-tab" data-channel="proximity">Proximidad</button>
+          <button class="phone-chat-tab" data-channel="private">Privado</button>
+          <button class="phone-chat-tab" data-channel="group">Golpe</button>
+        </div>
+
+        <div id="phone-chat-channel-banner" class="phone-channel-info-banner">Canal Global de Million Dollar City</div>
+
+        <div id="phone-chat-messages" class="phone-chat-list"></div>
+
+        <div class="phone-chat-input-bar">
+          <input type="text" id="phone-chat-input" class="phone-input" placeholder="Mensaje global (Enter)..." style="flex:1;">
+          <button id="phone-chat-send-btn" class="casino-btn" style="padding:6px 12px; font-size:12px;">➤</button>
+        </div>
+      </div>
+
+      <!-- App View 4: Coop Heists Hub -->
+      <div id="phone-view-heists" class="phone-screen-view">
+        <div class="phone-app-header-bar">
+          <button class="phone-back-btn" data-back="home">◀ Inicio</button>
+          <div class="phone-app-header" style="margin:0; border:none; padding:0;">🎯 ATRACOS</div>
+          <div style="width:50px;"></div>
+        </div>
+
+        <div id="heist-create-view" style="display:flex; flex-direction:column; gap:10px;">
+          <div style="font-size:11px; color:#aaa;">ELIGE EL PRÓXIMO GOLPE:</div>
+          <select id="heist-type-select" class="phone-input">
+            <option value="vault21">Atraco al Banco Central Vault 21 ($200,000)</option>
+            <option value="casino">El Gran Golpe al Casino Royal Mirage ($350,000)</option>
+            <option value="armored">Asalto a Furgón Blindado Securitas ($80,000)</option>
+          </select>
+          <button id="create-heist-btn" class="casino-btn" style="padding:10px;">CREAR GRUPO DE ATRACO</button>
+        </div>
+
+        <!-- Active Lobby -->
+        <div id="heist-lobby-view" style="display:none; flex-direction:column; gap:10px;">
+          <div style="background:rgba(0,0,0,0.5); padding:10px; border-radius:6px;">
+            <b id="heist-lobby-title" style="color:#ffd700; font-size:13px;">Atraco al Banco Central</b>
+            <div style="font-size:11px; color:#00ff88;">Botín Estimado: <b id="heist-lobby-loot">$200,000</b></div>
+          </div>
+
+          <div style="font-size:11px; color:#aaa;">INTEGRANTES Y ROLES:</div>
+          <div id="heist-crew-list" style="display:flex; flex-direction:column; gap:6px;"></div>
+
+          <button id="launch-heist-btn" class="casino-btn" style="padding:10px; font-size:12px;">INICIAR GOLPE COOPERATIVO 🚀</button>
+        </div>
+      </div>
+
+      <!-- App View 5: Interactive GPS City Map -->
+      <div id="phone-view-map" class="phone-screen-view">
+        <div class="phone-app-header-bar">
+          <button class="phone-back-btn" data-back="home">◀ Inicio</button>
+          <div class="phone-app-header" style="margin:0; border:none; padding:0;">🗺️ MAPA GPS</div>
+          <div style="font-size:10px; color:#00ff88; font-weight:bold;">EN VIVO</div>
+        </div>
+        
+        <!-- Zoom & Center Controls -->
+        <div class="map-controls-row">
+          <button id="map-zoom-in-btn" class="map-ctrl-btn" title="Acercar">+</button>
+          <button id="map-zoom-out-btn" class="map-ctrl-btn" title="Alejar">-</button>
+          <button id="map-recenter-btn" class="map-ctrl-btn" style="flex:1;" title="Centrar en Jugador">🎯 Centrar</button>
+        </div>
+
+        <div class="phone-map-wrapper">
+          <canvas id="phone-map-canvas" width="280" height="300" style="display:block; width:100%; height:100%; border-radius:8px; cursor:crosshair;"></canvas>
+          <div id="map-tooltip" class="map-tooltip"></div>
+        </div>
+
+        <!-- Dynamic GPS Legend -->
+        <div class="map-legend-bar">
+          <span class="legend-item"><span class="legend-dot" style="background:#ffd700;"></span> Casinos</span>
+          <span class="legend-item"><span class="legend-dot" style="background:#00ff88;"></span> Bancos</span>
+          <span class="legend-item"><span class="legend-dot" style="background:#ff3344;"></span> Armerías</span>
+          <span class="legend-item"><span class="legend-dot" style="background:#00f0ff;"></span> Jugadores</span>
+        </div>
+      </div>
+
+      <!-- App View 6: Black Market & Dealership -->
+      <div id="phone-view-market" class="phone-screen-view">
+        <div class="phone-app-header-bar">
+          <button class="phone-back-btn" data-back="home">◀ Inicio</button>
+          <div class="phone-app-header" style="margin:0; border:none; padding:0;">🛒 MERCADO</div>
+          <div style="width:50px;"></div>
+        </div>
+        <div class="phone-scroll-list" style="display:flex; flex-direction:column; gap:8px;">
+          <div class="market-card">
+            <div><b>Pegassi Viper GT</b><br><small style="color:#aaa;">Superdeportivo V10</small></div>
+            <button class="casino-btn market-buy-btn" data-item="viper_gt" data-price="120000">$120,000</button>
+          </div>
+          <div class="market-card">
+            <div><b>Vapid Dominator SS</b><br><small style="color:#aaa;">Muscle Car Clásico</small></div>
+            <button class="casino-btn market-buy-btn" data-item="dominator" data-price="75000">$75,000</button>
+          </div>
+          <div class="market-card">
+            <div><b>Rifle de Asalto Carbine M4</b><br><small style="color:#aaa;">Armamento Militar</small></div>
+            <button class="casino-btn market-buy-btn" data-item="m4_rifle" data-price="3500">$3,500</button>
+          </div>
+          <div class="market-card">
+            <div><b>Chaleco Antibalas Pesado</b><br><small style="color:#aaa;">100% Blindaje Kevlar</small></div>
+            <button class="casino-btn market-buy-btn" data-item="armor_heavy" data-price="800">$800</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Phone Home Navigation Pill -->
+      <div class="phone-home-bar">
+        <div id="phone-home-btn" class="phone-home-pill"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==============================================================
+       CASINO MODALS (BLACKJACK, ROULETTE, SLOTS, ATM)
+       ============================================================== -->
+
+  <!-- 1. BLACKJACK TABLE MODAL -->
+  <div id="blackjack-modal" class="game-modal">
+    <div class="modal-content-panel">
+      <div class="modal-header">
+        <div class="modal-title">♠ THE ROYAL MIRAGE | BLACKJACK CLÁSICO (3:2) ♠</div>
+        <button id="bj-close-btn" class="modal-close-btn">✕</button>
+      </div>
+
+      <div class="blackjack-felt">
+        <div>
+          <div style="font-size:12px; color:#aaa; text-align:center; margin-bottom:6px;">MANO DE LA BANCA</div>
+          <div id="bj-dealer-cards" class="cards-container"></div>
+        </div>
+
+        <div id="bj-status-msg" class="bj-status-line">Selecciona tu apuesta para repartir las cartas</div>
+
+        <div>
+          <div style="font-size:12px; color:#aaa; text-align:center; margin-bottom:6px;">TU MANO</div>
+          <div id="bj-player-cards" class="cards-container"></div>
+        </div>
+      </div>
+
+      <div id="bj-actions-group" class="bj-controls-bar" style="display:none;">
+        <button id="bj-hit-btn" class="casino-btn">PEDIR CARTA (HIT)</button>
+        <button id="bj-stand-btn" class="casino-btn secondary">PLANTARSE (STAND)</button>
+        <button id="bj-double-btn" class="casino-btn">DOBLAR (DOUBLE)</button>
+      </div>
+
+      <div id="bj-betting-group">
+        <div style="text-align:center; font-size:12px; color:#aaa; margin-top:14px;">ELIGE FICHA PARA APOSTAR:</div>
+        <div class="chips-bar">
+          <button class="chip-btn chip-25 bj-chip-btn" data-bet="25">$25</button>
+          <button class="chip-btn chip-50 bj-chip-btn" data-bet="50">$50</button>
+          <button class="chip-btn chip-100 bj-chip-btn" data-bet="100">$100</button>
+          <button class="chip-btn chip-500 bj-chip-btn" data-bet="500">$500</button>
+          <button class="chip-btn chip-1000 bj-chip-btn" data-bet="1000">$1K</button>
+          <button class="chip-btn chip-5000 bj-chip-btn" data-bet="5000">$5K</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. ROULETTE TABLE MODAL -->
+  <div id="roulette-modal" class="game-modal">
+    <div class="modal-content-panel" style="max-width:980px;">
+      <div class="modal-header">
+        <div class="modal-title">🎲 RULETA EUROPEA (0 - 36) | THE ROYAL MIRAGE 🎲</div>
+        <button id="roulette-close-btn" class="modal-close-btn">✕</button>
+      </div>
+
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <div>TOTAL APOSTADO: <b id="roulette-total-bet" style="color:#00ff88;">$0</b></div>
+        <div id="roulette-status-msg" style="color:#ffd700; font-weight:bold;">Coloca tus fichas en el tapete</div>
+        <div id="roulette-winning-number" class="winning-number" style="margin:0; font-size:32px;">--</div>
+      </div>
+
+      <div class="roulette-grid">
+        <div class="roulette-cell green" data-type="straight" data-number="0">0</div>
+
+        <!-- Row 1 -->
+        <div class="roulette-cell red" data-type="straight" data-number="3">3</div>
+        <div class="roulette-cell black" data-type="straight" data-number="6">6</div>
+        <div class="roulette-cell red" data-type="straight" data-number="9">9</div>
+        <div class="roulette-cell red" data-type="straight" data-number="12">12</div>
+        <div class="roulette-cell black" data-type="straight" data-number="15">15</div>
+        <div class="roulette-cell red" data-type="straight" data-number="18">18</div>
+        <div class="roulette-cell red" data-type="straight" data-number="21">21</div>
+        <div class="roulette-cell black" data-type="straight" data-number="24">24</div>
+        <div class="roulette-cell red" data-type="straight" data-number="27">27</div>
+        <div class="roulette-cell red" data-type="straight" data-number="30">30</div>
+        <div class="roulette-cell black" data-type="straight" data-number="33">33</div>
+        <div class="roulette-cell red" data-type="straight" data-number="36">36</div>
+        <div class="roulette-cell" data-type="col3">2 to 1</div>
+
+        <!-- Row 2 -->
+        <div class="roulette-cell black" data-type="straight" data-number="2">2</div>
+        <div class="roulette-cell red" data-type="straight" data-number="5">5</div>
+        <div class="roulette-cell black" data-type="straight" data-number="8">8</div>
+        <div class="roulette-cell black" data-type="straight" data-number="11">11</div>
+        <div class="roulette-cell red" data-type="straight" data-number="14">14</div>
+        <div class="roulette-cell black" data-type="straight" data-number="17">17</div>
+        <div class="roulette-cell black" data-type="straight" data-number="20">20</div>
+        <div class="roulette-cell red" data-type="straight" data-number="23">23</div>
+        <div class="roulette-cell black" data-type="straight" data-number="26">26</div>
+        <div class="roulette-cell black" data-type="straight" data-number="29">29</div>
+        <div class="roulette-cell red" data-type="straight" data-number="32">32</div>
+        <div class="roulette-cell black" data-type="straight" data-number="35">35</div>
+        <div class="roulette-cell" data-type="col2">2 to 1</div>
+
+        <!-- Row 3 -->
+        <div class="roulette-cell red" data-type="straight" data-number="1">1</div>
+        <div class="roulette-cell black" data-type="straight" data-number="4">4</div>
+        <div class="roulette-cell red" data-type="straight" data-number="7">7</div>
+        <div class="roulette-cell black" data-type="straight" data-number="10">10</div>
+        <div class="roulette-cell black" data-type="straight" data-number="13">13</div>
+        <div class="roulette-cell red" data-type="straight" data-number="16">16</div>
+        <div class="roulette-cell red" data-type="straight" data-number="19">19</div>
+        <div class="roulette-cell black" data-type="straight" data-number="22">22</div>
+        <div class="roulette-cell red" data-type="straight" data-number="25">25</div>
+        <div class="roulette-cell black" data-type="straight" data-number="28">28</div>
+        <div class="roulette-cell black" data-type="straight" data-number="31">31</div>
+        <div class="roulette-cell red" data-type="straight" data-number="34">34</div>
+        <div class="roulette-cell" data-type="col1">2 to 1</div>
+
+        <!-- Dozens -->
+        <div style="grid-column: 2 / span 4;" class="roulette-cell" data-type="dozen1">1st 12 (1-12)</div>
+        <div style="grid-column: 6 / span 4;" class="roulette-cell" data-type="dozen2">2nd 12 (13-24)</div>
+        <div style="grid-column: 10 / span 4;" class="roulette-cell" data-type="dozen3">3rd 12 (25-36)</div>
+        <div></div>
+
+        <!-- Outside Bets -->
+        <div style="grid-column: 2 / span 2;" class="roulette-cell" data-type="low">1 - 18</div>
+        <div style="grid-column: 4 / span 2;" class="roulette-cell" data-type="even">PAR</div>
+        <div style="grid-column: 6 / span 2;" class="roulette-cell red" data-type="red">ROJO</div>
+        <div style="grid-column: 8 / span 2;" class="roulette-cell black" data-type="black">NEGRO</div>
+        <div style="grid-column: 10 / span 2;" class="roulette-cell" data-type="odd">IMPAR</div>
+        <div style="grid-column: 12 / span 2;" class="roulette-cell" data-type="high">19 - 36</div>
+        <div></div>
+      </div>
+
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:16px;">
+        <div class="chips-bar" style="margin:0;">
+          <button class="chip-btn chip-10 roulette-chip-btn" data-chip="10" style="background:#555;">$10</button>
+          <button class="chip-btn chip-50 roulette-chip-btn active" data-chip="50">$50</button>
+          <button class="chip-btn chip-100 roulette-chip-btn" data-chip="100">$100</button>
+          <button class="chip-btn chip-500 roulette-chip-btn" data-chip="500">$500</button>
+          <button class="chip-btn chip-1000 roulette-chip-btn" data-chip="1000">$1K</button>
+        </div>
+
+        <div style="display:flex; gap:12px;">
+          <button id="roulette-clear-btn" class="casino-btn secondary">LIMPIAR</button>
+          <button id="roulette-spin-btn" class="casino-btn" style="font-size:16px; padding:12px 32px;">GIRAR RULETA 🎲</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. SLOTS MODAL -->
+  <div id="slots-modal" class="game-modal">
+    <div class="modal-content-panel" style="max-width:550px;">
+      <div class="modal-header">
+        <div class="modal-title">🎰 TRAGAPERRAS NEON DIAMOND 777 🎰</div>
+        <button id="slots-close-btn" class="modal-close-btn">✕</button>
+      </div>
+
+      <div class="slots-cabinet">
+        <div style="color:#ffd700; font-weight:800; font-size:14px; letter-spacing:2px;">GRAND JACKPOT: 100X</div>
+
+        <div class="reels-row">
+          <div id="reel-1" class="slot-reel">💎</div>
+          <div id="reel-2" class="slot-reel">7️⃣</div>
+          <div id="reel-3" class="slot-reel">💵</div>
+        </div>
+
+        <div id="slots-status-msg" style="color:#00ff88; font-weight:bold; font-size:15px; text-align:center;">
+          ¡Prueba suerte y llévate el millón!
+        </div>
+
+        <div style="display:flex; align-items:center; gap:12px;">
+          <label style="font-size:13px; color:#aaa;">APUESTA ($):</label>
+          <input type="number" id="slots-bet-input" value="50" min="10" max="500" step="10" style="width:90px; background:#000; border:1px solid #ffd700; color:#fff; padding:6px; font-weight:bold; text-align:center; border-radius:4px;">
+        </div>
+
+        <button id="slots-spin-btn" class="casino-btn" style="font-size:18px; padding:14px 44px; width:100%;">
+          ¡TIRAR RODILLOS! (SPIN) 🎰
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. ATM TERMINAL MODAL -->
+  <div id="atm-modal" class="game-modal">
+    <div class="modal-content-panel" style="max-width:550px;">
+      <div class="modal-header">
+        <div class="modal-title">🏦 CAJERO AUTOMÁTICO | MAZE BANK 🏦</div>
+        <button id="atm-close-btn" class="modal-close-btn">✕</button>
+      </div>
+
+      <div class="atm-screen">
+        <div class="atm-balances">
+          <div>EFECTIVO EN MANO: <br><b id="atm-cash-val" style="color:#00ff88; font-size:18px;">$250</b></div>
+          <div>SALDO EN CUENTA: <br><b id="atm-bank-val" style="color:#00f0ff; font-size:18px;">$500</b></div>
+        </div>
+
+        <div id="atm-status-msg" style="color:#ffd700; text-align:center; min-height:20px;">Selecciona una operación bancaria</div>
+
+        <div style="font-size:12px; color:#aaa; margin-top:6px;">DEPÓSITOS (EFECTIVO -> CUENTA):</div>
+        <div class="atm-grid-actions">
+          <button class="casino-btn secondary atm-action-btn" data-action="deposit" data-amount="100">Ingresar $100</button>
+          <button class="casino-btn secondary atm-action-btn" data-action="deposit" data-amount="500">Ingresar $500</button>
+          <button class="casino-btn secondary atm-action-btn" data-action="deposit" data-amount="2000">Ingresar $2,000</button>
+          <button class="casino-btn atm-action-btn" data-action="deposit" data-amount="-1">Ingresar TODO</button>
+        </div>
+
+        <div style="font-size:12px; color:#aaa; margin-top:8px;">RETIRADAS (CUENTA -> EFECTIVO):</div>
+        <div class="atm-grid-actions">
+          <button class="casino-btn secondary atm-action-btn" data-action="withdraw" data-amount="100">Retirar $100</button>
+          <button class="casino-btn secondary atm-action-btn" data-action="withdraw" data-amount="500">Retirar $500</button>
+          <button class="casino-btn secondary atm-action-btn" data-action="withdraw" data-amount="2000">Retirar $2,000</button>
+          <button class="casino-btn atm-action-btn" data-action="withdraw" data-amount="-1">Retirar TODO</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. MEGA WHEEL OF FORTUNE MODAL -->
+  <div id="wheel-modal" class="game-modal">
+    <div class="modal-content-panel" style="max-width:580px; text-align:center;">
+      <div class="modal-header">
+        <div class="modal-title">🎡 LA GRAN RULETA DE LA FORTUNA | JACKPOT 100X 🎡</div>
+        <button id="wheel-close-btn" class="modal-close-btn">✕</button>
+      </div>
+
+      <div style="margin:16px 0; display:flex; flex-direction:column; align-items:center;">
+        <div style="position:relative; width:280px; height:280px; margin:0 auto;">
+          <canvas id="wheel-canvas" width="280" height="280" style="border-radius:50%; box-shadow:0 0 25px rgba(255,215,0,0.45);"></canvas>
+          <div style="position:absolute; top:-12px; left:50%; transform:translateX(-50%); font-size:28px; z-index:10; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.8));">▼</div>
+        </div>
+
+        <div id="wheel-status-msg" style="color:#ffd700; font-weight:800; font-size:16px; margin-top:16px; min-height:24px;">
+          ¡Haz tu apuesta y gira la ruleta millonaria!
+        </div>
+
+        <div style="display:flex; justify-content:center; align-items:center; gap:12px; margin-top:12px;">
+          <label style="font-size:13px; color:#aaa;">APUESTA ($):</label>
+          <input type="number" id="wheel-bet-input" value="100" min="50" max="10000" step="50" style="width:110px; background:#000; border:1px solid #ffd700; color:#fff; padding:8px; font-weight:bold; text-align:center; border-radius:4px; font-size:15px;">
+          <div class="chips-bar" style="margin:0;">
+            <button class="chip-btn chip-50 wheel-quick-bet" data-bet="50">$50</button>
+            <button class="chip-btn chip-100 wheel-quick-bet" data-bet="100">$100</button>
+            <button class="chip-btn chip-500 wheel-quick-bet" data-bet="500">$500</button>
+            <button class="chip-btn chip-1000 wheel-quick-bet" data-bet="1000">$1K</button>
+          </div>
+        </div>
+
+        <button id="wheel-spin-btn" class="casino-btn" style="font-size:18px; padding:14px 44px; width:100%; margin-top:16px;">
+          ¡GIRAR LA GRAN RULETA! 🎡
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Wasted & Victory Screens -->
+  <div id="wasted-screen">
+    <div class="wasted-text">WASTED</div>
+  </div>
+
+  <div id="victory-screen">
+    <div class="victory-title">★ 1.000.000 $ CONSEGUIDOS ★</div>
+    <div class="victory-subtitle">
+      ¡ENHORABUENA! Has conquistado Million Dollar City desde la nada.<br>
+      Eres oficialmente el Magnate y Rey de los Casinos de la ciudad.<br>
+      Has desbloqueado el Modo Libre Infinito y la Suite Presidencial.
+    </div>
+    <button class="casino-btn" style="font-size:18px; padding:16px 40px;" onclick="document.getElementById('victory-screen').classList.remove('visible');">
+      CONTINUAR JUGANDO EN MODO LIBRE
+    </button>
+  </div>
+
+  <!-- Socket.IO Client Script (Loaded from Express server) -->
+  <script src="/socket.io/socket.io.js"></script>
+
+  <!-- Main Game Entry Point -->
+  <script type="module" src="/js/main.js?v=2.1"></script>
+
+</body>
+</html>
