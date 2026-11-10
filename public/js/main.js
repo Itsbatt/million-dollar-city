@@ -279,18 +279,28 @@ class MillionDollarCityGame {
 
     // Shooting with left mouse click (incorporating ADS aiming spread & camera recoil kick)
     window.addEventListener('mousedown', (e) => {
-      if (e.button === 0 && !this.player.inVehicle && !document.body.classList.contains('ui-active')) {
-        const isAiming = !!this.inputManager.mouse.isRightDown;
-        this.weapons.shoot(this.pedestrians.getPedestrians(), isAiming, this.cameraManager);
-
-        // Emit shot to other connected players
-        const pPos = this.player.getPosition();
-        this.network?.socket?.emit('player:shoot', {
-          origin: { x: pPos.x, y: pPos.y + 1.4, z: pPos.z },
-          direction: this.cameraManager.camera.getWorldDirection(new THREE.Vector3()),
-          weapon: this.weapons.currentWeaponId
-        });
+      // STRICT SHOOTING GATE:
+      if (e.button !== 0) return;
+      if (this.player.inVehicle) return;
+      if (!document.pointerLockElement) return;
+      if (document.body.classList.contains('ui-active')) return;
+      if (e.target && e.target.closest && e.target.closest('.game-modal, .modal, .modal-content-panel, button, input, select, textarea, a, #phone-container, .hud-chat-box, .lan-lobby-panel, .ui-panel, #blackout-overlay, #wasted-screen, #victory-screen')) {
+        return;
       }
+      if (document.querySelector('.game-modal.visible, .modal.visible, #phone-container.visible, #lan-lobby-modal.visible')) {
+        return;
+      }
+
+      const isAiming = !!this.inputManager.mouse.isRightDown;
+      this.weapons.shoot(this.pedestrians.getPedestrians(), isAiming, this.cameraManager);
+
+      // Emit shot to other connected players
+      const pPos = this.player.getPosition();
+      this.network?.socket?.emit('player:shoot', {
+        origin: { x: pPos.x, y: pPos.y + 1.4, z: pPos.z },
+        direction: this.cameraManager.camera.getWorldDirection(new THREE.Vector3()),
+        weapon: this.weapons.currentWeaponId
+      });
     });
 
     // Reload with R

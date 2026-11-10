@@ -89,6 +89,8 @@ export class InputManager {
     });
 
     window.addEventListener('mousedown', (e) => {
+      if (document.body.classList.contains('ui-active') || !document.pointerLockElement) return;
+      if (e.target && e.target.closest && e.target.closest('.game-modal, button, input, select, textarea, .lan-lobby-panel, #phone-container')) return;
       if (e.button === 0) this.mouse.isLeftDown = true;
       if (e.button === 2) this.mouse.isRightDown = true;
     });

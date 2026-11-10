@@ -204,6 +204,9 @@ export class WeaponSystem {
 
   shoot(enemies = [], isAiming = false, cameraManager = null) {
     if (this.player.inVehicle) return; // cannot shoot while driving
+    if (!document.pointerLockElement) return; // cannot shoot with free mouse cursor
+    if (document.body.classList.contains('ui-active')) return; // cannot shoot while UI is active
+    if (document.querySelector('.game-modal.visible, .modal.visible, #phone-container.visible, #lan-lobby-modal.visible')) return;
     const now = performance.now() / 1000;
     const weapon = this.weapons[this.currentWeaponId];
 
