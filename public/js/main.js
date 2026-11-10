@@ -83,6 +83,9 @@ class MillionDollarCityGame {
       { pos: { x: -26.0, z: 18.0 }, color: '#c77dff' }  // Dealer Callejero Clandestino
     ];
     this._activeRadarWaypoints = [];
+    this._lastInteractionCheck = 0;
+    this._lastMissionCheck = 0;
+    this._lastFilterStr = '';
 
     // Alcohol, narcotics & garage state
     this.drunkLevel = 0;
@@ -782,8 +785,11 @@ class MillionDollarCityGame {
         this.phoneUI.toggle();
       }
 
-      // 2. Check Contextual Interactions & Proximities
-      this.checkInteractions();
+      // 2. Check Contextual Interactions & Proximities (Throttled to ~10Hz to eliminate frame stutter)
+      if (!this._lastInteractionCheck || timestamp - this._lastInteractionCheck > 95) {
+        this._lastInteractionCheck = timestamp;
+        this.checkInteractions();
+      }
 
       const isAiming = !!(this.inputManager.mouse.isRightDown && !this.player.inVehicle);
       const currentWeaponId = this.weapons.currentWeaponId || 'pistol';
@@ -830,9 +836,12 @@ class MillionDollarCityGame {
       // 7. Update Police Pursuits
       this.police.update(delta);
 
-      // 8. Update Missions & Cooperative Heists
-      this.missions.update(delta, this.player.getPosition(), this.police.getWantedLevel());
-      this.coopHeists.update(delta, this.player.getPosition());
+      // 8. Update Missions & Cooperative Heists (Throttled to ~8Hz to eliminate GC stalls)
+      if (!this._lastMissionCheck || timestamp - this._lastMissionCheck > 120) {
+        this._lastMissionCheck = timestamp;
+        this.missions.update(0.12, this.player.getPosition(), this.police.getWantedLevel());
+        this.coopHeists.update(0.12, this.player.getPosition());
+      }
 
       // 9. Update Lighting & Neon Animations
       this.lighting.update(delta, this.neonSigns);
@@ -943,7 +952,11 @@ class MillionDollarCityGame {
           this.cameraManager.camera.rotation.z = Math.sin(performance.now() * 0.0016) * wobble * 0.035;
         }
 
-        canvasEl.style.filter = filterStr.trim();
+        const finalFilter = filterStr.trim();
+        if (this._lastFilterStr !== finalFilter) {
+          canvasEl.style.filter = finalFilter;
+          this._lastFilterStr = finalFilter;
+        }
       }
 
       // 15. Render 3D Frame

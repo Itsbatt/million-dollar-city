@@ -384,6 +384,14 @@ export class Vehicle {
   // -------------------------------------------------------------
 
   update(delta, inputManager, colliders = []) {
+    // Performance: Early exit for idle parked vehicles to eliminate physics overhead
+    if (!this.isOccupied && Math.abs(this.currentSpeed) < 0.05 && Math.abs(this.steeringAngle) < 0.01) {
+      this.currentSpeed = 0;
+      this.targetSteering = 0;
+      this.steeringAngle = 0;
+      return;
+    }
+
     if (this.isOccupied && inputManager) {
       this.handleDriverInput(delta, inputManager);
     } else {

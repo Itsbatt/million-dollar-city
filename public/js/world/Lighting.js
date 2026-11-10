@@ -155,15 +155,18 @@ export class LightingManager {
   update(delta, neonSigns = []) {
     this.time += delta;
 
-    // Subtle neon sign flicker / pulsing
-    const pulse = 1.8 + Math.sin(this.time * 4) * 0.4;
-    for (const sign of neonSigns) {
-      if (sign && sign.material && sign.material.emissiveIntensity !== undefined) {
-        sign.material.emissiveIntensity = pulse;
+    // Throttle material emissive updates to eliminate GPU uniform buffer re-upload thrashing
+    if (!this._lastNeonUpdate || this.time - this._lastNeonUpdate > 0.075) {
+      this._lastNeonUpdate = this.time;
+      const pulse = 1.8 + Math.sin(this.time * 4) * 0.4;
+      for (let i = 0; i < neonSigns.length; i++) {
+        const sign = neonSigns[i];
+        if (sign && sign.material && sign.material.emissiveIntensity !== undefined) {
+          sign.material.emissiveIntensity = pulse;
+        }
       }
+      // Casino golden marquee glow pulse
+      this.casinoGlow.intensity = 2.8 + Math.sin(this.time * 2.5) * 0.8;
     }
-
-    // Casino golden marquee glow pulse
-    this.casinoGlow.intensity = 2.8 + Math.sin(this.time * 2.5) * 0.8;
   }
 }
