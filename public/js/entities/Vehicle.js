@@ -1,6 +1,10 @@
 import * as THREE from '/vendor/three.module.js';
 import AudioManager from '../engine/AudioManager.js';
 
+// Pre-allocated scratch vectors for zero-GC vehicle physics
+const _forwardVec = new THREE.Vector3();
+const _nextPosVec = new THREE.Vector3();
+
 export class Vehicle {
   constructor(scene, type = 'supercar', initialPos = { x: 5, y: 0, z: 25 }, options = {}) {
     this.scene = scene;
@@ -13,7 +17,9 @@ export class Vehicle {
 
     // Dynamic State
     this.position = new THREE.Vector3(initialPos.x, initialPos.y || 0, initialPos.z);
+    this.velocity = new THREE.Vector3();
     this.currentSpeed = 0; // m/s
+    this.driftFactor = 0;
     this.steeringAngle = 0; // radians
     this.targetSteering = 0;
     this.isBraking = false;
@@ -63,13 +69,31 @@ export class Vehicle {
       this.handling = 1.6;
       this.color = options.color || 0xd62828; // Crimson Red
       this.weight = 1600;
+    } else if (type === 'suv') {
+      this.name = 'Benefactor Dubsta 4x4';
+      this.maxSpeed = 36.0; // ~130 km/h
+      this.acceleration = 20.0;
+      this.reverseSpeed = 10.0;
+      this.brakingForce = 32.0;
+      this.handling = 1.55;
+      this.color = options.color || 0x1e252b; // Stealth Matte Black
+      this.weight = 2200;
+    } else if (type === 'hypercar') {
+      this.name = 'Truffade Nero Phantom';
+      this.maxSpeed = 52.0; // ~188 km/h (El rey del asfalto)
+      this.acceleration = 29.0;
+      this.reverseSpeed = 14.0;
+      this.brakingForce = 38.0;
+      this.handling = 2.05;
+      this.color = options.color || 0x7209b7; // Midnight Royal Violet
+      this.weight = 1250;
     } else if (type === 'police') {
       this.name = 'LSPD Interceptor Cruiser';
-      this.maxSpeed = 44.0; // ~158 km/h
-      this.acceleration = 23.0;
-      this.reverseSpeed = 13.0;
-      this.brakingForce = 32.0;
-      this.handling = 1.75;
+      this.maxSpeed = 34.0; // ~122 km/h (Persecución balanceada para permitir evasión)
+      this.acceleration = 18.0;
+      this.reverseSpeed = 12.0;
+      this.brakingForce = 30.0;
+      this.handling = 1.65;
       this.color = 0x111116; // Police Black & White
       this.isPolice = true;
       this.weight = 1750;
@@ -258,7 +282,7 @@ export class Vehicle {
       this.chassisGroup.add(doorR);
     }
 
-    // 5. Headlights & Working Real-Time Three.js Spotlights
+    // 5. Headlights (Lenses use bright glowing emissive material without costly GPU SpotLights)
     const hlLeftMesh = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.12, 0.08), headlightMat);
     hlLeftMesh.position.set(-0.7, 0.44, 2.26);
     this.chassisGroup.add(hlLeftMesh);
@@ -267,25 +291,18 @@ export class Vehicle {
     hlRightMesh.position.set(0.7, 0.44, 2.26);
     this.chassisGroup.add(hlRightMesh);
 
-    // Left Spotlight Beam
-    const spotLeft = new THREE.SpotLight(0xfffaed, 2.8, 45, Math.PI / 5, 0.4, 1.2);
-    spotLeft.position.set(-0.7, 0.5, 2.3);
-    const targetLeft = new THREE.Object3D();
-    targetLeft.position.set(-0.7, 0, 25);
-    this.chassisGroup.add(targetLeft);
-    spotLeft.target = targetLeft;
-    this.chassisGroup.add(spotLeft);
-    this.headlights.push(spotLeft);
-
-    // Right Spotlight Beam
-    const spotRight = new THREE.SpotLight(0xfffaed, 2.8, 45, Math.PI / 5, 0.4, 1.2);
-    spotRight.position.set(0.7, 0.5, 2.3);
-    const targetRight = new THREE.Object3D();
-    targetRight.position.set(0.7, 0, 25);
-    this.chassisGroup.add(targetRight);
-    spotRight.target = targetRight;
-    this.chassisGroup.add(spotRight);
-    this.headlights.push(spotRight);
+    // Optional single high-end headlight beam (only if graphics preset explicitly allows spotlights)
+    const isHighEnd = window.__MDC_GRAPHICS_PRESET?.spotlights === true;
+    if (isHighEnd) {
+      const spotCenter = new THREE.SpotLight(0xfffaed, 2.4, 40, Math.PI / 4, 0.4, 1.2);
+      spotCenter.position.set(0, 0.5, 2.3);
+      const targetCenter = new THREE.Object3D();
+      targetCenter.position.set(0, 0, 25);
+      this.chassisGroup.add(targetCenter);
+      spotCenter.target = targetCenter;
+      this.chassisGroup.add(spotCenter);
+      this.headlights.push(spotCenter);
+    }
 
     // 6. Taillights
     const tailGeom = new THREE.BoxGeometry(0.42, 0.1, 0.06);
@@ -379,32 +396,37 @@ export class Vehicle {
     // Steer angle smoothing
     this.steeringAngle = THREE.MathUtils.lerp(this.steeringAngle, this.targetSteering, delta * 8);
 
-    // Update front wheel steering visual
-    this.frontLeftWheel.rotation.y = this.steeringAngle;
-    this.frontRightWheel.rotation.y = this.steeringAngle;
+    // Update front wheel steering visual (negated to match screen-relative turning)
+    this.frontLeftWheel.rotation.y = -this.steeringAngle;
+    this.frontRightWheel.rotation.y = -this.steeringAngle;
 
     // Move Vehicle
     if (Math.abs(this.currentSpeed) > 0.01) {
       // Rotate vehicle heading based on steering and speed (responsive at low and high speed)
+      // Note: In Three.js right-handed system (+Y up), negative yawDelta rotates +Z towards +X (Right)
       const speedRatio = Math.abs(this.currentSpeed) / this.maxSpeed;
       const turnFactor = (0.55 + speedRatio * 0.45) * this.handling;
-      const yawDelta = this.steeringAngle * turnFactor * delta * 3.4 * (this.currentSpeed >= 0 ? 1 : -1);
+      const yawDelta = -this.steeringAngle * turnFactor * delta * 3.4 * (this.currentSpeed >= 0 ? 1 : -1);
       this.mesh.rotation.y += yawDelta;
 
-      // Forward vector (+Z is vehicle forward)
-      const forward = new THREE.Vector3(
+      // Forward vector (+Z is vehicle forward) without GC allocation
+      _forwardVec.set(
         Math.sin(this.mesh.rotation.y),
         0,
         Math.cos(this.mesh.rotation.y)
       );
 
-      const nextPos = this.position.clone().addScaledVector(forward, this.currentSpeed * delta);
+      this.velocity.copy(_forwardVec).multiplyScalar(this.currentSpeed);
+      _nextPosVec.copy(this.position).addScaledVector(_forwardVec, this.currentSpeed * delta);
 
       // Collisions with buildings
-      this.resolveVehicleCollisions(nextPos, colliders);
+      this.resolveVehicleCollisions(_nextPosVec, colliders);
 
-      this.position.copy(nextPos);
+      this.position.copy(_nextPosVec);
       this.mesh.position.copy(this.position);
+      if (this.isOccupied && this.driver) {
+        this.driver.position.copy(this.position);
+      }
 
       // Roll wheels around X axis
       const rollDist = (this.currentSpeed * delta) / 0.35;
@@ -449,12 +471,12 @@ export class Vehicle {
       AudioManager.updateEngine(rpmRatio, inputManager?.keys.forward);
 
       // Horn
-      if (inputManager?.consumeHorn()) {
+      if (typeof inputManager?.consumeHorn === 'function' && inputManager.consumeHorn()) {
         AudioManager.playHorn();
       }
 
       // Radio Toggle (Q)
-      if (inputManager?.consumeRadio()) {
+      if (typeof inputManager?.consumeRadio === 'function' && inputManager.consumeRadio()) {
         const isPlaying = AudioManager.toggleRadio();
         window.dispatchEvent(new CustomEvent('radio:toggled', { detail: { isPlaying } }));
       }
@@ -503,14 +525,14 @@ export class Vehicle {
       this.isHandbraking = false;
     }
 
-    // Steering with dynamic speed sensitivity
+    // Steering with dynamic speed sensitivity (A = Left, D = Right)
     const speedRatio = Math.abs(this.currentSpeed) / this.maxSpeed;
     const maxSteer = 0.65 - speedRatio * 0.20; // responsive turning even at speed
 
     if (keys.left) {
-      this.targetSteering = maxSteer;
-    } else if (keys.right) {
       this.targetSteering = -maxSteer;
+    } else if (keys.right) {
+      this.targetSteering = maxSteer;
     } else {
       this.targetSteering = 0;
     }
@@ -520,8 +542,10 @@ export class Vehicle {
     const halfWidth = 0.95; // tight, accurate collision box to avoid false sticking
     const halfLength = 1.95;
 
-    for (const box of colliders) {
-      if (!box) continue;
+    for (const item of colliders) {
+      if (!item) continue;
+      const box = item.box || item;
+      if (!box.min || !box.max) continue;
       // Skip ground planes and thin triggers
       if (box.max.y - box.min.y < 0.8) continue;
       // Skip interior colliders if vehicle is out on surface
@@ -552,8 +576,15 @@ export class Vehicle {
         }
 
         // Retain 65% forward velocity sliding along walls instead of freezing dead!
+        const prevSpeed = this.currentSpeed;
         this.currentSpeed = Math.sign(this.currentSpeed) * Math.max(Math.abs(this.currentSpeed) * 0.65, 3.0);
         AudioManager.playTireSkid(0.3);
+
+        if (Math.abs(prevSpeed) > 7.0) {
+          window.dispatchEvent(new CustomEvent('vehicle:crash', {
+            detail: { position: targetPos.clone(), speed: Math.abs(prevSpeed) }
+          }));
+        }
         return;
       }
     }
@@ -564,6 +595,11 @@ export class Vehicle {
     this.driver = player;
     player.inVehicle = true;
     player.currentVehicle = this;
+
+    // Hide character mesh so they are inside the vehicle, not standing outside
+    if (player.mesh) {
+      player.mesh.visible = false;
+    }
 
     // Start engine audio
     AudioManager.startEngine(this.type === 'supercar' ? 'sports' : 'muscle');
@@ -585,14 +621,21 @@ export class Vehicle {
     const leftDir = new THREE.Vector3(-1, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), this.mesh.rotation.y);
     player.position.copy(this.position).addScaledVector(leftDir, 1.8);
     player.position.y = 0;
-    player.velocity.set(0, 0, 0);
-    player.mesh.visible = true;
+    if (player.velocity) player.velocity.set(0, 0, 0);
+    if (player.mesh) {
+      player.mesh.position.copy(player.position);
+      player.mesh.visible = true; // Show character model again upon exiting
+    }
 
     // Stop engine sound
     AudioManager.stopEngine();
     if (this.isPolice) AudioManager.stopPoliceSiren();
 
     console.log(`[Vehicle] Exited ${this.name}`);
+  }
+
+  get speed() {
+    return Math.abs(this.currentSpeed);
   }
 
   getPosition() {

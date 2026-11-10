@@ -92,6 +92,11 @@ export class CityGenerator {
     this.buildVault21Bank();
     this.buildAmmuNation();
     this.buildClubVelvet();
+    this.buildLiquorStore();
+    this.buildDealership();
+    this.buildChopShopGarage();
+    this.buildPoliceHeadquarters();
+    this.buildStreetDealerAlley();
     this.buildDowntownSkyscrapers();
     this.buildCommercialBoutiques();
     this.buildExpandedMetropolisDistricts();
@@ -422,12 +427,12 @@ export class CityGenerator {
     beaconLight.position.set(25.5, 3.2, 0);
     casinoGroup.add(beaconLight);
 
-    // Register Door trigger for entering Casino Interior with wider radius
+    // Register Door trigger for entering Casino Interior with accurate rectified coordinates
     this.doors.push({
       id: 'casino_entrance',
       name: 'The Royal Mirage Casino',
       type: 'CASINO_ENTRANCE',
-      position: new THREE.Vector3(-16.5, 1.0, 35.0),
+      position: new THREE.Vector3(-17.5, 1.0, 50.0),
       radius: 8.5,
       interactionPrompt: '[E] Entrar al Casino The Royal Mirage',
       targetLocation: 'CASINO_INTERIOR'
@@ -618,6 +623,506 @@ export class CityGenerator {
   }
 
   // -------------------------------------------------------------
+  // DIAMOND LIQUORS & 24/7 STORE (Z: -15)
+  // -------------------------------------------------------------
+
+  buildLiquorStore() {
+    const storeGroup = new THREE.Group();
+    storeGroup.name = 'DiamondLiquorStore';
+    const posX = -42;
+    const posZ = -15;
+    storeGroup.position.set(posX, 0, posZ);
+    this.scene.add(storeGroup);
+
+    // Main Brick Building (W: 24, H: 8.5, D: 22)
+    const wallMat = new THREE.MeshStandardMaterial({
+      color: 0x1f2421,
+      roughness: 0.7,
+      metalness: 0.2
+    });
+    const mainBuilding = new THREE.Mesh(new THREE.BoxGeometry(24, 8.5, 22), wallMat);
+    mainBuilding.position.set(0, 4.25, 0);
+    mainBuilding.castShadow = true;
+    mainBuilding.receiveShadow = true;
+    storeGroup.add(mainBuilding);
+    this.addColliderBox(posX, 4.25, posZ, 24, 8.5, 22);
+
+    // Storefront Window (Glass facing boulevard at X: 12.1)
+    const glassMat = new THREE.MeshStandardMaterial({
+      color: 0x0a2f1d,
+      roughness: 0.1,
+      metalness: 0.9,
+      transparent: true,
+      opacity: 0.85
+    });
+    const glassWindow = new THREE.Mesh(new THREE.BoxGeometry(0.2, 5.0, 16), glassMat);
+    glassWindow.position.set(12.1, 3.2, 0);
+    storeGroup.add(glassWindow);
+
+    // Neon Awning Canopy (Emerald Green & Gold)
+    const canopyMat = new THREE.MeshStandardMaterial({ color: 0x2d6a4f, roughness: 0.4 });
+    const canopy = new THREE.Mesh(new THREE.BoxGeometry(3.5, 0.4, 17), canopyMat);
+    canopy.position.set(13.6, 6.2, 0);
+    canopy.rotation.z = -0.15;
+    storeGroup.add(canopy);
+
+    // Neon Illuminated Sign: "24/7 LIQUOR & DRINKS"
+    const signMat = new THREE.MeshStandardMaterial({
+      color: 0x52b788,
+      emissive: 0x40916c,
+      emissiveIntensity: 3.2
+    });
+    const neonSign = new THREE.Mesh(new THREE.BoxGeometry(0.2, 1.4, 15), signMat);
+    neonSign.position.set(12.3, 7.4, 0);
+    storeGroup.add(neonSign);
+
+    // Neon Beer Mug / Bottle Accent
+    const accentMat = new THREE.MeshStandardMaterial({
+      color: 0xffb703,
+      emissive: 0xfb8500,
+      emissiveIntensity: 2.8
+    });
+    const bottleSign = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.4, 1.8, 8), accentMat);
+    bottleSign.position.set(12.3, 7.4, 7.5);
+    storeGroup.add(bottleSign);
+
+    // Entrance Beacon / Door Ring
+    const doorRing = new THREE.Mesh(
+      new THREE.RingGeometry(1.2, 1.6, 16),
+      new THREE.MeshBasicMaterial({ color: 0x52b788, side: THREE.DoubleSide })
+    );
+    doorRing.rotation.x = -Math.PI / 2;
+    doorRing.position.set(14.5, 0.05, 0);
+    storeGroup.add(doorRing);
+
+    // Interactive Door Trigger
+    this.doors.push({
+      id: 'liquor_store',
+      name: 'Diamond 24/7 Liquors & Drinks',
+      type: 'LIQUOR_STORE',
+      position: new THREE.Vector3(-27.0, 1.0, -15.0),
+      radius: 4.8,
+      interactionPrompt: '[E] Comprar Bebidas y Alcohol en Diamond 24/7',
+      action: 'OPEN_LIQUOR_STORE'
+    });
+
+    this.landmarks['liquor'] = storeGroup;
+  }
+
+  // -------------------------------------------------------------
+  // LUXURY MOTORSPORT CAR DEALERSHIP (Z: 120)
+  // -------------------------------------------------------------
+
+  buildDealership() {
+    const dealerGroup = new THREE.Group();
+    dealerGroup.name = 'LuxuryMotorsportDealership';
+    const posX = 45;
+    const posZ = 120;
+    dealerGroup.position.set(posX, 0, posZ);
+    this.scene.add(dealerGroup);
+
+    // Main Showroom Building (W: 32, H: 10, D: 36)
+    const buildingMat = new THREE.MeshStandardMaterial({
+      color: 0x181a1f,
+      roughness: 0.3,
+      metalness: 0.6
+    });
+    const mainBuilding = new THREE.Mesh(new THREE.BoxGeometry(32, 10, 36), buildingMat);
+    mainBuilding.position.set(0, 5, 0);
+    mainBuilding.castShadow = true;
+    mainBuilding.receiveShadow = true;
+    dealerGroup.add(mainBuilding);
+    this.addColliderBox(posX, 5, posZ, 32, 10, 36);
+
+    // Panoramic Curved Glass Facade facing boulevard (X: -16.1)
+    const showroomGlassMat = new THREE.MeshStandardMaterial({
+      color: 0x00f0ff,
+      roughness: 0.05,
+      metalness: 0.95,
+      transparent: true,
+      opacity: 0.78
+    });
+    const glassFacade = new THREE.Mesh(new THREE.BoxGeometry(0.3, 7.5, 28), showroomGlassMat);
+    glassFacade.position.set(-16.1, 4.2, 0);
+    dealerGroup.add(glassFacade);
+
+    // Polished Chrome Showroom Pillars
+    const chromeMat = new THREE.MeshStandardMaterial({ color: 0xeeeeee, metalness: 0.95, roughness: 0.1 });
+    [-12, -4, 4, 12].forEach((pz) => {
+      const col = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 9.5, 12), chromeMat);
+      col.position.set(-15.8, 5, pz);
+      dealerGroup.add(col);
+    });
+
+    // Rotating Showroom Car Display Turntable inside
+    const turntableMat = new THREE.MeshStandardMaterial({ color: 0x222226, metalness: 0.8, roughness: 0.2 });
+    const turntable = new THREE.Mesh(new THREE.CylinderGeometry(4.5, 4.8, 0.4, 24), turntableMat);
+    turntable.position.set(-8.0, 0.2, 0);
+    dealerGroup.add(turntable);
+
+    // Showroom Display Sports Car on turntable
+    const showcaseCarGroup = new THREE.Group();
+    const carBody = new THREE.Mesh(
+      new THREE.BoxGeometry(2.1, 0.7, 4.4),
+      new THREE.MeshStandardMaterial({ color: 0xff0055, metalness: 0.9, roughness: 0.15 })
+    );
+    carBody.position.y = 0.55;
+    showcaseCarGroup.add(carBody);
+    const carCabin = new THREE.Mesh(
+      new THREE.BoxGeometry(1.8, 0.6, 2.2),
+      new THREE.MeshStandardMaterial({ color: 0x0a1120, metalness: 0.9, roughness: 0.1 })
+    );
+    carCabin.position.set(0, 1.05, -0.2);
+    showcaseCarGroup.add(carCabin);
+    showcaseCarGroup.position.set(-8.0, 0.4, 0);
+    dealerGroup.add(showcaseCarGroup);
+    dealerGroup.userData.turntableCar = showcaseCarGroup;
+
+    // Giant Illuminated Dealership Sign: "LUXURY MOTORSPORT DEALERSHIP"
+    const signMat = new THREE.MeshStandardMaterial({
+      color: 0x00f0ff,
+      emissive: 0x00b4d8,
+      emissiveIntensity: 3.5
+    });
+    const dealerSign = new THREE.Mesh(new THREE.BoxGeometry(0.2, 1.8, 26), signMat);
+    dealerSign.position.set(-16.3, 8.8, 0);
+    dealerGroup.add(dealerSign);
+
+    // Exterior Delivery Bay (Yellow chevron ground box for purchased cars)
+    const bayMat = new THREE.MeshBasicMaterial({ color: 0xffb703, side: THREE.DoubleSide });
+    const bayMarking = new THREE.Mesh(new THREE.PlaneGeometry(6, 10), bayMat);
+    bayMarking.rotation.x = -Math.PI / 2;
+    bayMarking.position.set(-23.0, 0.05, 0);
+    dealerGroup.add(bayMarking);
+
+    // Delivery bay signpost
+    const baySign = new THREE.Mesh(
+      new THREE.BoxGeometry(0.1, 1.2, 2.4),
+      new THREE.MeshStandardMaterial({ color: 0xffb703, emissive: 0xffb703, emissiveIntensity: 1.5 })
+    );
+    baySign.position.set(-20.0, 2.0, 6.0);
+    dealerGroup.add(baySign);
+
+    // Interactive Door Trigger
+    this.doors.push({
+      id: 'car_dealership',
+      name: 'Concesionario Luxury Motorsport',
+      type: 'DEALERSHIP',
+      position: new THREE.Vector3(25.0, 1.0, 120.0),
+      radius: 5.2,
+      interactionPrompt: '[E] Comprar Vehículos en Luxury Motorsport',
+      action: 'OPEN_DEALERSHIP',
+      deliveryBay: { x: 22.0, y: 0, z: 120.0, rotY: Math.PI / 2 }
+    });
+
+    this.landmarks['dealership'] = dealerGroup;
+  }
+
+  // -------------------------------------------------------------
+  // CHOP SHOP & SAFE GARAGE (GARAJE DE OCULTACIÓN - Z: -90)
+  // -------------------------------------------------------------
+
+  buildChopShopGarage() {
+    const garageGroup = new THREE.Group();
+    garageGroup.name = 'ChopShopGarage';
+    const posX = 32;
+    const posZ = -90;
+    garageGroup.position.set(posX, 0, posZ);
+    this.scene.add(garageGroup);
+
+    // Main Warehouse Body (W: 20m, H: 8.5m, D: 22m)
+    const wallMat = new THREE.MeshStandardMaterial({
+      color: 0x22252a,
+      roughness: 0.8,
+      metalness: 0.3
+    });
+    const mainBuilding = new THREE.Mesh(new THREE.BoxGeometry(20, 8.5, 22), wallMat);
+    mainBuilding.position.set(0, 4.25, 0);
+    mainBuilding.castShadow = true;
+    mainBuilding.receiveShadow = true;
+    garageGroup.add(mainBuilding);
+    this.addColliderBox(posX, 4.25, posZ, 20, 8.5, 22);
+
+    // Roll-up industrial garage shutter door
+    const doorMat = new THREE.MeshStandardMaterial({
+      color: 0x3a3f47,
+      roughness: 0.45,
+      metalness: 0.8
+    });
+    const garageDoor = new THREE.Mesh(new THREE.BoxGeometry(0.3, 5.6, 9.5), doorMat);
+    garageDoor.position.set(-10.1, 2.8, 0);
+    garageGroup.add(garageDoor);
+
+    // Horizontal grooves on roll-up door
+    const lineMat = new THREE.MeshStandardMaterial({ color: 0x1a1c20 });
+    for (let r = 1; r < 7; r++) {
+      const groove = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.08, 9.3), lineMat);
+      groove.position.set(-10.12, r * 0.8, 0);
+      garageGroup.add(groove);
+    }
+
+    // Hazard Stripes on Door Frame
+    const hazardMat = new THREE.MeshStandardMaterial({
+      color: 0xffcc00,
+      roughness: 0.5
+    });
+    const lintel = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.6, 11), hazardMat);
+    lintel.position.set(-10.2, 5.9, 0);
+    garageGroup.add(lintel);
+
+    // Illuminated Neon Signboard: "GARAJE DE OCULTACIÓN"
+    const signBoardMat = new THREE.MeshStandardMaterial({ color: 0x111317 });
+    const signBoard = new THREE.Mesh(new THREE.BoxGeometry(0.3, 1.4, 14), signBoardMat);
+    signBoard.position.set(-10.2, 7.2, 0);
+    garageGroup.add(signBoard);
+
+    const signTextMat = new THREE.MeshStandardMaterial({
+      color: 0xffaa00,
+      emissive: 0xff8800,
+      emissiveIntensity: 2.5
+    });
+    const signText = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.7, 12.5), signTextMat);
+    signText.position.set(-10.22, 7.2, 0);
+    garageGroup.add(signText);
+    this.neonSigns.push(signText);
+
+    // Subtitle Neon: "CHOP SHOP • GARAJE SEGURO"
+    const subSignMat = new THREE.MeshStandardMaterial({
+      color: 0x00f0ff,
+      emissive: 0x00c8e6,
+      emissiveIntensity: 2.2
+    });
+    const subSign = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.35, 8.5), subSignMat);
+    subSign.position.set(-10.22, 6.4, 0);
+    garageGroup.add(subSign);
+    this.neonSigns.push(subSign);
+
+    // Outdoor Amber Industrial Security Lamp
+    const lampLight = new THREE.PointLight(0xffa834, 2.8, 25, 1.4);
+    lampLight.position.set(-11.5, 6.8, 0);
+    garageGroup.add(lampLight);
+
+    // Ground Drop-Off Delivery Zone Beacon (at X = 18, Z = -90 in world coords)
+    const dropZone = new THREE.Group();
+    dropZone.position.set(-14, 0.05, 0);
+
+    // Outer neon ring
+    const ringMat = new THREE.MeshStandardMaterial({
+      color: 0x00f0ff,
+      emissive: 0x00f0ff,
+      emissiveIntensity: 2.5,
+      roughness: 0.3
+    });
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(4.2, 0.16, 8, 36), ringMat);
+    ring.rotation.x = -Math.PI / 2;
+    dropZone.add(ring);
+
+    // Vertical translucent light column beam
+    const beamGeo = new THREE.CylinderGeometry(4.2, 4.2, 8, 24, 1, true);
+    const beamMat = new THREE.MeshBasicMaterial({
+      color: 0x00f0ff,
+      transparent: true,
+      opacity: 0.2,
+      side: THREE.DoubleSide
+    });
+    const beam = new THREE.Mesh(beamGeo, beamMat);
+    beam.position.set(0, 4, 0);
+    dropZone.add(beam);
+
+    garageGroup.add(dropZone);
+
+    // Register Door/Interaction Trigger
+    this.doors.push({
+      id: 'chop_shop_garage',
+      name: 'Garaje de Ocultación (Chop Shop)',
+      type: 'GARAGE',
+      position: new THREE.Vector3(18, 1.0, posZ),
+      radius: 9.0,
+      interactionPrompt: '[E] Reparar y Tunear Vehículo'
+    });
+
+    this.landmarks['garage'] = garageGroup;
+  }
+
+  // -------------------------------------------------------------
+  // LSPD CENTRAL POLICE DEPARTMENT & PRISON (Z: -130)
+  // -------------------------------------------------------------
+
+  buildPoliceHeadquarters() {
+    const policeGroup = new THREE.Group();
+    policeGroup.name = 'LSPD_Police_HQ';
+    const posX = -32;
+    const posZ = -130;
+    policeGroup.position.set(posX, 0, posZ);
+    this.scene.add(policeGroup);
+
+    // Main Police Precinct Building (W: 24m, H: 11m, D: 24m)
+    const buildingMat = new THREE.MeshStandardMaterial({
+      color: 0x1e2530,
+      roughness: 0.7,
+      metalness: 0.3
+    });
+    const mainBuilding = new THREE.Mesh(new THREE.BoxGeometry(24, 11, 24), buildingMat);
+    mainBuilding.position.set(0, 5.5, 0);
+    policeGroup.add(mainBuilding);
+    this.addColliderBox(posX, 5.5, posZ, 24, 11, 24);
+
+    // Blue Municipal Trim Band
+    const blueTrimMat = new THREE.MeshStandardMaterial({
+      color: 0x0044cc,
+      roughness: 0.4,
+      metalness: 0.4
+    });
+    const trimMesh = new THREE.Mesh(new THREE.BoxGeometry(24.2, 0.8, 24.2), blueTrimMat);
+    trimMesh.position.set(0, 9.8, 0);
+    policeGroup.add(trimMesh);
+
+    // Entrance portico & double security doors facing Main Boulevard (East, +X)
+    const porticoMat = new THREE.MeshStandardMaterial({ color: 0x111620, roughness: 0.5 });
+    const portico = new THREE.Mesh(new THREE.BoxGeometry(1.8, 4.2, 6.0), porticoMat);
+    portico.position.set(12.8, 2.1, 0);
+    policeGroup.add(portico);
+
+    const doorMat = new THREE.MeshStandardMaterial({ color: 0x002244, metalness: 0.8 });
+    const doors = new THREE.Mesh(new THREE.BoxGeometry(0.2, 3.2, 3.6), doorMat);
+    doors.position.set(12.1, 1.6, 0);
+    policeGroup.add(doors);
+
+    // Massive LSPD Police Signboard
+    const signBoardMat = new THREE.MeshStandardMaterial({ color: 0x050811, roughness: 0.8 });
+    const signBoard = new THREE.Mesh(new THREE.BoxGeometry(0.4, 2.2, 14.0), signBoardMat);
+    signBoard.position.set(12.3, 7.8, 0);
+    policeGroup.add(signBoard);
+
+    // Blue & White LSPD Neon Letters
+    const lspdNeonMat = new THREE.MeshStandardMaterial({
+      color: 0x00a2ff,
+      emissive: 0x0066ff,
+      emissiveIntensity: 2.8
+    });
+    const lspdSign = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.9, 12.0), lspdNeonMat);
+    lspdSign.position.set(12.4, 7.8, 0);
+    policeGroup.add(lspdSign);
+    this.neonSigns.push(lspdSign);
+
+    // Rooftop Police Communication Tower
+    const towerMat = new THREE.MeshStandardMaterial({ color: 0x475569, metalness: 0.8 });
+    const tower = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.35, 7.0, 6), towerMat);
+    tower.position.set(4, 14.5, 4);
+    policeGroup.add(tower);
+
+    // Red warning beacon on top of tower
+    const beaconMat = new THREE.MeshStandardMaterial({ color: 0xff0033, emissive: 0xff0033, emissiveIntensity: 3.0 });
+    const beacon = new THREE.Mesh(new THREE.SphereGeometry(0.3, 6, 6), beaconMat);
+    beacon.position.set(4, 18.0, 4);
+    policeGroup.add(beacon);
+
+    // Interactive Police Station & Jail Entrance trigger
+    this.doors.push({
+      id: 'lspd_hq',
+      name: 'Comisaría Central LSPD y Prisión',
+      type: 'POLICE',
+      position: new THREE.Vector3(-16.5, 1.0, posZ),
+      radius: 6.5,
+      interactionPrompt: '[E] Comisaría Central LSPD y Pago de Fianzas'
+    });
+
+    this.landmarks['police'] = policeGroup;
+  }
+
+  // -------------------------------------------------------------
+  // SHADY STREET DEALER ALLEY (NARCOTICS & PSYCHEDELICS)
+  // -------------------------------------------------------------
+  buildStreetDealerAlley() {
+    const dealerGroup = new THREE.Group();
+    dealerGroup.name = 'StreetDealerAlley';
+    const posX = -26.0;
+    const posZ = 18.0;
+    dealerGroup.position.set(posX, 0, posZ);
+
+    // 1. Shady Dealer NPC Model (Stylized low-poly)
+    const npcGroup = new THREE.Group();
+    npcGroup.position.set(0, 0, 0);
+
+    // Dark Hoodie Torso
+    const hoodieMat = new THREE.MeshStandardMaterial({ color: 0x18181f, roughness: 0.8 });
+    const torso = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.7, 0.3), hoodieMat);
+    torso.position.set(0, 1.15, 0);
+    torso.castShadow = true;
+    npcGroup.add(torso);
+
+    // Head with Hood
+    const hoodMat = new THREE.MeshStandardMaterial({ color: 0x121217, roughness: 0.9 });
+    const hood = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.38, 0.36), hoodMat);
+    hood.position.set(0, 1.62, 0.02);
+    npcGroup.add(hood);
+
+    // Sunglasses
+    const glassesMat = new THREE.MeshStandardMaterial({ color: 0x0a0a0a, metalness: 0.9, roughness: 0.1 });
+    const glasses = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.08, 0.08), glassesMat);
+    glasses.position.set(0, 1.62, 0.19);
+    npcGroup.add(glasses);
+
+    // Gold Chain
+    const chainMat = new THREE.MeshStandardMaterial({ color: 0xffd700, metalness: 0.9, roughness: 0.2 });
+    const chain = new THREE.Mesh(new THREE.TorusGeometry(0.12, 0.02, 6, 12), chainMat);
+    chain.position.set(0, 1.35, 0.16);
+    chain.rotation.x = Math.PI / 3;
+    npcGroup.add(chain);
+
+    // Jeans Legs
+    const jeansMat = new THREE.MeshStandardMaterial({ color: 0x223048, roughness: 0.8 });
+    const leftLeg = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.8, 0.2), jeansMat);
+    leftLeg.position.set(-0.12, 0.4, 0);
+    npcGroup.add(leftLeg);
+
+    const rightLeg = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.8, 0.2), jeansMat);
+    rightLeg.position.set(0.12, 0.4, 0);
+    npcGroup.add(rightLeg);
+
+    // Face towards the sidewalk
+    npcGroup.rotation.y = Math.PI / 2;
+    dealerGroup.add(npcGroup);
+
+    // 2. Alley Props (Dumpster & Crate)
+    const dumpsterMat = new THREE.MeshStandardMaterial({ color: 0x2d4030, roughness: 0.7 });
+    const dumpster = new THREE.Mesh(new THREE.BoxGeometry(1.6, 1.3, 2.4), dumpsterMat);
+    dumpster.position.set(-1.4, 0.65, 0);
+    dealerGroup.add(dumpster);
+    this.addColliderBox(posX - 1.4, 0.65, posZ, 1.6, 1.3, 2.4, 'dumpster');
+
+    // 3. Shady Purple Neon Glow Sign
+    const signMat = new THREE.MeshStandardMaterial({
+      color: 0xc77dff,
+      emissive: 0x9d4edd,
+      emissiveIntensity: 2.2,
+      roughness: 0.2
+    });
+    const sign = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.6, 2.2), signMat);
+    sign.position.set(1.4, 2.8, 0);
+    dealerGroup.add(sign);
+
+    const purpleGlow = new THREE.PointLight(0x9d4edd, 2.4, 12);
+    purpleGlow.position.set(0.4, 2.4, 0);
+    dealerGroup.add(purpleGlow);
+
+    this.scene.add(dealerGroup);
+
+    // 4. Register Door / Interaction Trigger
+    this.doors.push({
+      id: 'street_dealer',
+      name: 'Dealer Callejero • Sustancias & Psicodelia',
+      type: 'STREET_DEALER',
+      position: new THREE.Vector3(posX, 0.8, posZ),
+      radius: 4.0,
+      interactionPrompt: '[E] Hablar con el Dealer Callejero 💊',
+      action: 'OPEN_DEALER'
+    });
+
+    this.landmarks['dealer'] = dealerGroup;
+  }
+
+  // -------------------------------------------------------------
   // DOWNTOWN SKYSCRAPERS & TOWERS
   // -------------------------------------------------------------
 
@@ -687,6 +1192,37 @@ export class CityGenerator {
       const beacon = new THREE.Mesh(new THREE.SphereGeometry(0.35, 8, 8), beaconMat);
       beacon.position.set(0, t.h + 12, 0);
       towerGroup.add(beacon);
+
+      // Special Grand Entrance for Dynasty 8 Plaza (Penthouse Suite & Freeplay)
+      if (t.name === 'Dynasty 8 Plaza') {
+        const entranceCanopy = new THREE.Mesh(
+          new THREE.BoxGeometry(3.0, 0.5, 9.0),
+          new THREE.MeshStandardMaterial({ color: 0x111624, metalness: 0.9, roughness: 0.3 })
+        );
+        entranceCanopy.position.set(-t.w / 2 - 1.5, 4.2, 0);
+        towerGroup.add(entranceCanopy);
+
+        // Golden Neon Penthouse Signboard
+        const goldNeonMat = new THREE.MeshStandardMaterial({
+          color: 0xffd700,
+          emissive: 0xffaa00,
+          emissiveIntensity: 3.2
+        });
+        const signMesh = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.9, 8.5), goldNeonMat);
+        signMesh.position.set(-t.w / 2 - 2.8, 4.8, 0);
+        towerGroup.add(signMesh);
+        this.neonSigns.push(signMesh);
+
+        // Interactive Door / Elevator to Penthouse
+        this.doors.push({
+          id: 'dynasty8_penthouse',
+          name: 'Dynasty 8 Plaza • Suite Presidencial',
+          type: 'PENTHOUSE',
+          position: new THREE.Vector3(29.0, 1.0, -110.0),
+          radius: 9.5,
+          interactionPrompt: '[E] Reclamar Suite Presidencial y Modo Libre'
+        });
+      }
 
       this.scene.add(towerGroup);
     });
@@ -804,28 +1340,70 @@ export class CityGenerator {
   }
 
   // -------------------------------------------------------------
-  // URBAN FURNITURE, STREETLIGHTS & PALM TREES
+  // URBAN FURNITURE, STREETLIGHTS & PALM TREES (HIGH-PERFORMANCE SHARED ASSETS)
   // -------------------------------------------------------------
 
+  initUrbanPropsAssets() {
+    if (this._propsAssets) return;
+    this._propsAssets = {
+      // Shared Materials (Eliminates hundreds of shader compiles on Intel HD / UHD GPUs)
+      lampPoleMat: new THREE.MeshStandardMaterial({ color: 0x222428, metalness: 0.6, roughness: 0.4 }),
+      lampHeadMat: new THREE.MeshStandardMaterial({
+        color: 0xfffaed,
+        emissive: 0xffe6a3,
+        emissiveIntensity: 2.5
+      }),
+      palmTrunkMat: new THREE.MeshStandardMaterial({ color: 0x4a3728, roughness: 0.9 }),
+      palmFrondMat: new THREE.MeshStandardMaterial({ color: 0x1e5e2f, roughness: 0.7, side: THREE.DoubleSide }),
+      benchWoodMat: new THREE.MeshStandardMaterial({ color: 0x6f4e37, roughness: 0.7 }),
+      benchIronMat: new THREE.MeshStandardMaterial({ color: 0x1a1a1a, metalness: 0.6 }),
+      hydrantMat: new THREE.MeshStandardMaterial({ color: 0xd90429, roughness: 0.4 }),
+      trafficPoleMat: new THREE.MeshStandardMaterial({ color: 0x242426, metalness: 0.6 }),
+      trafficBoxMat: new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.5 }),
+
+      // Shared Low-Poly Geometries (Low vertex footprint, maximum GPU cache locality)
+      lampPoleGeom: new THREE.CylinderGeometry(0.12, 0.16, 7.5, 6),
+      lampArmGeom: new THREE.BoxGeometry(2.4, 0.1, 0.15),
+      lampHeadGeom: new THREE.BoxGeometry(0.8, 0.18, 0.35),
+      palmTrunkGeom: new THREE.CylinderGeometry(0.24, 0.36, 9.5, 6),
+      palmFrondGeom: new THREE.PlaneGeometry(0.8, 3.8),
+      benchSeatGeom: new THREE.BoxGeometry(0.6, 0.08, 1.8),
+      benchBackGeom: new THREE.BoxGeometry(0.08, 0.45, 1.8),
+      benchLegGeom: new THREE.BoxGeometry(0.55, 0.45, 0.08),
+      hydrantGeom: new THREE.CylinderGeometry(0.16, 0.18, 0.85, 6),
+      trafficPoleGeom: new THREE.CylinderGeometry(0.15, 0.18, 6.5, 6),
+      trafficArmGeom: new THREE.BoxGeometry(5.5, 0.12, 0.12),
+      trafficBoxGeom: new THREE.BoxGeometry(0.35, 1.1, 0.35)
+    };
+  }
+
   buildUrbanProps() {
+    this.initUrbanPropsAssets();
+
     const propsGroup = new THREE.Group();
     propsGroup.name = 'UrbanStreetProps';
     this.scene.add(propsGroup);
 
-    // Streetlights along Main Boulevard & Parallel Avenues (extended to 320m)
-    for (let z = -320; z <= 320; z += 40) {
+    // Optimized street zone (-180m to +180m: covers Casino, Bank, Dealership, Chop Shop, Ammu-Nation)
+    for (let z = -180; z <= 180; z += 45) {
       this.buildModernStreetLamp(propsGroup, -14.8, z, Math.PI / 2);
       this.buildModernStreetLamp(propsGroup, 14.8, z, -Math.PI / 2);
 
-      // Palm trees spaced along the boulevard sidewalks
-      this.buildCaliforniaPalm(propsGroup, -15.8, z + 20);
-      this.buildCaliforniaPalm(propsGroup, 15.8, z + 20);
+      // Palm trees spaced along boulevard sidewalks
+      this.buildCaliforniaPalm(propsGroup, -15.8, z + 22);
+      this.buildCaliforniaPalm(propsGroup, 15.8, z + 22);
 
-      // Street Benches & Trash Cans
+      // Street Benches & Hydrants
       this.buildStreetBench(propsGroup, -15.5, z - 12, Math.PI / 2);
       this.buildStreetBench(propsGroup, 15.5, z - 12, -Math.PI / 2);
       this.buildFireHydrant(propsGroup, -14.5, z + 10);
     }
+
+    // Single central warm plaza illumination light at the main intersection (Z = 0)
+    // Replaces 34 expensive PointLights with 1 efficient central city light
+    const centralStreetGlow = new THREE.PointLight(0xffdf9e, 2.2, 45, 1.4);
+    centralStreetGlow.position.set(0, 8.5, 0);
+    propsGroup.add(centralStreetGlow);
 
     // Traffic Lights at Main Intersection (Z = 0)
     this.buildTrafficLightPole(propsGroup, -13.0, 10.0, 0);
@@ -833,66 +1411,46 @@ export class CityGenerator {
   }
 
   buildModernStreetLamp(parent, x, z, rotY) {
-    const poleMat = new THREE.MeshStandardMaterial({ color: 0x222428, metalness: 0.8, roughness: 0.3 });
+    const a = this._propsAssets;
     const lampGroup = new THREE.Group();
     lampGroup.position.set(x, 0, z);
     lampGroup.rotation.y = rotY;
 
     // Pole
-    const poleGeom = new THREE.CylinderGeometry(0.12, 0.16, 7.5, 10);
-    const pole = new THREE.Mesh(poleGeom, poleMat);
+    const pole = new THREE.Mesh(a.lampPoleGeom, a.lampPoleMat);
     pole.position.set(0, 3.75, 0);
-    pole.castShadow = true;
     lampGroup.add(pole);
 
     // Arch Arm
-    const armGeom = new THREE.BoxGeometry(2.4, 0.1, 0.15);
-    const arm = new THREE.Mesh(armGeom, poleMat);
+    const arm = new THREE.Mesh(a.lampArmGeom, a.lampPoleMat);
     arm.position.set(1.1, 7.4, 0);
     lampGroup.add(arm);
 
-    // Fixture head
-    const headGeom = new THREE.BoxGeometry(0.8, 0.18, 0.35);
-    const headMat = new THREE.MeshStandardMaterial({
-      color: 0xfffaed,
-      emissive: 0xffe6a3,
-      emissiveIntensity: 2.2
-    });
-    const head = new THREE.Mesh(headGeom, headMat);
+    // High-emissive lantern head (simulates bright sodium light without GPU point light penalty)
+    const head = new THREE.Mesh(a.lampHeadGeom, a.lampHeadMat);
     head.position.set(2.2, 7.3, 0);
     lampGroup.add(head);
-
-    // Real dynamic Night Light (PointLight with warm 3000K city tint)
-    const light = new THREE.PointLight(0xffdf9e, 1.8, 28, 1.5);
-    light.position.set(2.2, 7.1, 0);
-    lampGroup.add(light);
 
     parent.add(lampGroup);
   }
 
   buildCaliforniaPalm(parent, x, z) {
+    const a = this._propsAssets;
     const palmGroup = new THREE.Group();
     palmGroup.position.set(x, 0, z);
 
-    // Segmented Trunk with slight natural curve
-    const trunkMat = new THREE.MeshStandardMaterial({ color: 0x4a3728, roughness: 0.9 });
-    const trunkGeom = new THREE.CylinderGeometry(0.24, 0.38, 9.5, 8);
-    const trunk = new THREE.Mesh(trunkGeom, trunkMat);
+    // Trunk
+    const trunk = new THREE.Mesh(a.palmTrunkGeom, a.palmTrunkMat);
     trunk.position.set(0, 4.75, 0);
-    trunk.rotation.z = (Math.random() - 0.5) * 0.12;
-    trunk.castShadow = true;
     palmGroup.add(trunk);
 
-    // Palm Crown (Leaf fronds)
-    const frondMat = new THREE.MeshStandardMaterial({ color: 0x1e5e2f, roughness: 0.7, side: THREE.DoubleSide });
-    for (let i = 0; i < 8; i++) {
-      const angle = (i / 8) * Math.PI * 2;
-      const frondGeom = new THREE.PlaneGeometry(0.8, 3.8);
-      const frond = new THREE.Mesh(frondGeom, frondMat);
-      frond.position.set(Math.cos(angle) * 1.5, 9.4, Math.sin(angle) * 1.5);
+    // Fronds (6 optimized fan fronds reusing shared plane geometry)
+    for (let i = 0; i < 6; i++) {
+      const angle = (i / 6) * Math.PI * 2;
+      const frond = new THREE.Mesh(a.palmFrondGeom, a.palmFrondMat);
+      frond.position.set(Math.cos(angle) * 1.4, 9.4, Math.sin(angle) * 1.4);
       frond.rotation.y = angle;
       frond.rotation.x = 0.55;
-      frond.castShadow = true;
       palmGroup.add(frond);
     }
 
@@ -900,71 +1458,68 @@ export class CityGenerator {
   }
 
   buildStreetBench(parent, x, z, rotY) {
+    const a = this._propsAssets;
     const benchGroup = new THREE.Group();
     benchGroup.position.set(x, 0, z);
     benchGroup.rotation.y = rotY;
 
-    const woodMat = new THREE.MeshStandardMaterial({ color: 0x6f4e37, roughness: 0.7 });
-    const ironMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, metalness: 0.8 });
-
-    // Seat slats
-    const seat = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.08, 1.8), woodMat);
+    // Seat
+    const seat = new THREE.Mesh(a.benchSeatGeom, a.benchWoodMat);
     seat.position.set(0, 0.45, 0);
     benchGroup.add(seat);
 
     // Backrest
-    const back = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.45, 1.8), woodMat);
+    const back = new THREE.Mesh(a.benchBackGeom, a.benchWoodMat);
     back.position.set(-0.26, 0.72, 0);
     benchGroup.add(back);
 
     // Iron legs
-    [-0.7, 0.7].forEach((lz) => {
-      const leg = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.45, 0.08), ironMat);
-      leg.position.set(0, 0.225, lz);
-      benchGroup.add(leg);
-    });
+    const legL = new THREE.Mesh(a.benchLegGeom, a.benchIronMat);
+    legL.position.set(0, 0.225, -0.7);
+    benchGroup.add(legL);
+
+    const legR = new THREE.Mesh(a.benchLegGeom, a.benchIronMat);
+    legR.position.set(0, 0.225, 0.7);
+    benchGroup.add(legR);
 
     parent.add(benchGroup);
   }
 
   buildFireHydrant(parent, x, z) {
-    const hydrantMat = new THREE.MeshStandardMaterial({ color: 0xd90429, roughness: 0.4, metalness: 0.2 });
-    const hyd = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.18, 0.85, 10), hydrantMat);
+    const a = this._propsAssets;
+    const hyd = new THREE.Mesh(a.hydrantGeom, a.hydrantMat);
     hyd.position.set(x, 0.42, z);
-    hyd.castShadow = true;
     parent.add(hyd);
   }
 
   buildTrafficLightPole(parent, x, z, rotY) {
+    const a = this._propsAssets;
     const poleGroup = new THREE.Group();
     poleGroup.position.set(x, 0, z);
     poleGroup.rotation.y = rotY;
 
-    const poleMat = new THREE.MeshStandardMaterial({ color: 0x242426, metalness: 0.7 });
-    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.18, 6.5, 10), poleMat);
+    const pole = new THREE.Mesh(a.trafficPoleGeom, a.trafficPoleMat);
     pole.position.set(0, 3.25, 0);
     poleGroup.add(pole);
 
-    // Horizontal arm reaching over lane
-    const arm = new THREE.Mesh(new THREE.BoxGeometry(5.5, 0.12, 0.12), poleMat);
+    const arm = new THREE.Mesh(a.trafficArmGeom, a.trafficPoleMat);
     arm.position.set(2.7, 6.2, 0);
     poleGroup.add(arm);
 
-    // Signal Housing Box
-    const boxMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.8 });
-    const signalBox = new THREE.Mesh(new THREE.BoxGeometry(0.4, 1.4, 0.4), boxMat);
-    signalBox.position.set(4.2, 5.8, 0);
+    // Signal head box
+    const signalBox = new THREE.Mesh(a.trafficBoxGeom, a.trafficBoxMat);
+    signalBox.position.set(4.2, 5.7, 0);
     poleGroup.add(signalBox);
 
-    // Red, Yellow, Green Lenses
+    // Red and Green Lenses
     const redMat = new THREE.MeshStandardMaterial({ color: 0xff0000, emissive: 0xff0000, emissiveIntensity: 2.5 });
-    const redLens = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 8), redMat);
-    redLens.position.set(4.2, 6.2, 0.2);
+    const redLens = new THREE.Mesh(new THREE.SphereGeometry(0.12, 6, 6), redMat);
+    redLens.position.set(4.2, 6.1, 0.2);
     poleGroup.add(redLens);
 
     const greenMat = new THREE.MeshStandardMaterial({ color: 0x00ff44, emissive: 0x00ff44, emissiveIntensity: 0.2 });
-    const greenLens = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 8), greenMat);
-    greenLens.position.set(4.2, 5.4, 0.2);
+    const greenLens = new THREE.Mesh(new THREE.SphereGeometry(0.12, 6, 6), greenMat);
+    greenLens.position.set(4.2, 5.3, 0.2);
     poleGroup.add(greenLens);
 
     this.trafficLights.push({ redLens, greenLens, state: 'red' });

@@ -30,19 +30,19 @@ class AudioManager {
       const AudioCtx = window.AudioContext || window.webkitAudioContext;
       this.ctx = new AudioCtx();
 
-      // Master output
+      // Master output (calibrated to comfortable, non-fatiguing levels)
       this.masterGain = this.ctx.createGain();
-      this.masterGain.gain.setValueAtTime(0.7, this.ctx.currentTime);
+      this.masterGain.gain.setValueAtTime(0.35, this.ctx.currentTime);
       this.masterGain.connect(this.ctx.destination);
 
-      // SFX Bus
+      // SFX Bus (soft, warm dynamics)
       this.sfxGain = this.ctx.createGain();
-      this.sfxGain.gain.setValueAtTime(0.8, this.ctx.currentTime);
+      this.sfxGain.gain.setValueAtTime(0.40, this.ctx.currentTime);
       this.sfxGain.connect(this.masterGain);
 
       // Music Bus
       this.musicGain = this.ctx.createGain();
-      this.musicGain.gain.setValueAtTime(0.35, this.ctx.currentTime);
+      this.musicGain.gain.setValueAtTime(0.25, this.ctx.currentTime);
       this.musicGain.connect(this.masterGain);
 
       this.initialized = true;
@@ -136,8 +136,8 @@ class AudioManager {
     filter.Q.setValueAtTime(isSniper ? 2.5 : 1.5, now);
 
     const noiseGain = this.ctx.createGain();
-    const duration = isSniper ? 0.45 : (isShotgun ? 0.35 : (type === 'rifle' ? 0.18 : 0.14));
-    noiseGain.gain.setValueAtTime(isSniper ? 0.9 : 0.6, now);
+    const duration = isSniper ? 0.38 : (isShotgun ? 0.30 : (type === 'rifle' ? 0.16 : 0.12));
+    noiseGain.gain.setValueAtTime(isSniper ? 0.38 : 0.28, now);
     noiseGain.gain.exponentialRampToValueAtTime(0.001, now + duration);
 
     noise.connect(filter);
@@ -151,11 +151,11 @@ class AudioManager {
     const bass = this.ctx.createOscillator();
     const bassGain = this.ctx.createGain();
     bass.type = 'triangle';
-    bass.frequency.setValueAtTime(isSniper ? 240 : (isShotgun ? 180 : 140), now);
-    bass.frequency.exponentialRampToValueAtTime(25, now + (isSniper ? 0.38 : 0.2));
+    bass.frequency.setValueAtTime(isSniper ? 180 : (isShotgun ? 140 : 110), now);
+    bass.frequency.exponentialRampToValueAtTime(25, now + (isSniper ? 0.32 : 0.18));
 
-    bassGain.gain.setValueAtTime(isSniper ? 0.95 : 0.7, now);
-    bassGain.gain.exponentialRampToValueAtTime(0.001, now + (isSniper ? 0.42 : 0.25));
+    bassGain.gain.setValueAtTime(isSniper ? 0.45 : 0.32, now);
+    bassGain.gain.exponentialRampToValueAtTime(0.001, now + (isSniper ? 0.35 : 0.20));
 
     bass.connect(bassGain);
     bassGain.connect(this.sfxGain);
@@ -252,36 +252,32 @@ class AudioManager {
     if (!this.initialized || this.engineRunning) return;
     const now = this.ctx.currentTime;
 
-    // Dual oscillator setup for engine roar + rumble
+    // Pleasant, warm acoustic rumble (smooth low-passed triangles + sub-sine)
     const osc1 = this.ctx.createOscillator();
     const osc2 = this.ctx.createOscillator();
     const subOsc = this.ctx.createOscillator();
 
-    osc1.type = 'sawtooth';
-    osc2.type = 'triangle';
+    osc1.type = 'triangle';
+    osc2.type = 'sine';
     subOsc.type = 'sine';
 
-    const baseFreq = vehicleType === 'sports' ? 55 : 42;
+    const baseFreq = vehicleType === 'sports' ? 44 : 36;
     osc1.frequency.setValueAtTime(baseFreq, now);
     osc2.frequency.setValueAtTime(baseFreq * 1.5, now);
     subOsc.frequency.setValueAtTime(baseFreq * 0.5, now);
 
     const filter = this.ctx.createBiquadFilter();
     filter.type = 'lowpass';
-    filter.frequency.setValueAtTime(450, now);
-
-    const distortion = this.ctx.createWaveShaper();
-    distortion.curve = this.makeDistortionCurve(20);
+    filter.frequency.setValueAtTime(260, now);
 
     const gain = this.ctx.createGain();
-    gain.gain.setValueAtTime(0.2, now);
+    gain.gain.setValueAtTime(0.08, now);
 
     osc1.connect(filter);
     osc2.connect(filter);
     subOsc.connect(filter);
 
-    filter.connect(distortion);
-    distortion.connect(gain);
+    filter.connect(gain);
     gain.connect(this.sfxGain);
 
     osc1.start(now);
@@ -297,15 +293,15 @@ class AudioManager {
     const now = this.ctx.currentTime;
     const { osc1, osc2, subOsc, filter, gain, baseFreq } = this.engineNodes;
 
-    const targetPitch = baseFreq + rpmRatio * (baseFreq * 3.8);
-    const filterCutoff = 350 + rpmRatio * 1800 + (isAccelerating ? 400 : 0);
-    const volume = 0.18 + rpmRatio * 0.22 + (isAccelerating ? 0.08 : 0);
+    const targetPitch = baseFreq + rpmRatio * (baseFreq * 2.2);
+    const filterCutoff = 220 + rpmRatio * 420 + (isAccelerating ? 120 : 0);
+    const volume = 0.08 + rpmRatio * 0.08 + (isAccelerating ? 0.03 : 0);
 
-    osc1.frequency.setTargetAtTime(targetPitch, now, 0.06);
-    osc2.frequency.setTargetAtTime(targetPitch * 1.5, now, 0.06);
-    subOsc.frequency.setTargetAtTime(targetPitch * 0.5, now, 0.06);
-    filter.frequency.setTargetAtTime(filterCutoff, now, 0.08);
-    gain.gain.setTargetAtTime(volume, now, 0.08);
+    osc1.frequency.setTargetAtTime(targetPitch, now, 0.08);
+    osc2.frequency.setTargetAtTime(targetPitch * 1.5, now, 0.08);
+    subOsc.frequency.setTargetAtTime(targetPitch * 0.5, now, 0.08);
+    filter.frequency.setTargetAtTime(filterCutoff, now, 0.1);
+    gain.gain.setTargetAtTime(volume, now, 0.1);
   }
 
   stopEngine() {
@@ -393,19 +389,69 @@ class AudioManager {
     if (!this.initialized) return;
     const now = this.ctx.currentTime;
     const osc = this.ctx.createOscillator();
+    const filter = this.ctx.createBiquadFilter();
+    const gain = this.ctx.createGain();
+
+    // Soft organic ceramic chip clink (lowered pitch, smooth decay)
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(850 + Math.random() * 200, now);
+    osc.frequency.exponentialRampToValueAtTime(450, now + 0.035);
+
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(1400, now);
+
+    gain.gain.setValueAtTime(0.045, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.sfxGain);
+    osc.start(now);
+    osc.stop(now + 0.045);
+  }
+
+  playHeartbeat() {
+    if (!this.initialized) this.init();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+
+    // Organic double thump "Lub-Dub"
+    [0, 0.14].forEach((delay, idx) => {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(idx === 0 ? 58 : 46, now + delay);
+      osc.frequency.exponentialRampToValueAtTime(25, now + delay + 0.12);
+
+      gain.gain.setValueAtTime(0.28, now + delay);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + delay + 0.14);
+
+      osc.connect(gain);
+      gain.connect(this.masterGain);
+      osc.start(now + delay);
+      osc.stop(now + delay + 0.16);
+    });
+  }
+
+  playGulp() {
+    if (!this.initialized) this.init();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
 
     osc.type = 'sine';
-    osc.frequency.setValueAtTime(2600 + Math.random() * 400, now);
-    osc.frequency.exponentialRampToValueAtTime(1800, now + 0.04);
+    osc.frequency.setValueAtTime(180, now);
+    osc.frequency.exponentialRampToValueAtTime(320, now + 0.09);
+    osc.frequency.exponentialRampToValueAtTime(120, now + 0.18);
 
-    gain.gain.setValueAtTime(0.25, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+    gain.gain.setValueAtTime(0.12, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
 
     osc.connect(gain);
     gain.connect(this.sfxGain);
     osc.start(now);
-    osc.stop(now + 0.05);
+    osc.stop(now + 0.22);
   }
 
   playCardDeal() {
@@ -617,9 +663,9 @@ class AudioManager {
 
     const filter = this.ctx.createBiquadFilter();
     filter.type = 'lowpass';
-    filter.frequency.setValueAtTime(1600, now);
+    filter.frequency.setValueAtTime(850, now);
 
-    gain.gain.setValueAtTime(0.18, now);
+    gain.gain.setValueAtTime(0.065, now);
 
     osc.connect(filter);
     filter.connect(gain);

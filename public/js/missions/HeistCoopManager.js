@@ -20,6 +20,18 @@ export class HeistCoopManager {
     window.addEventListener('heist:mission_launched', (e) => {
       this.startHeist(e.detail);
     });
+
+    // Sync coop heist progression across all team players
+    if (this.network && this.network.socket) {
+      this.network.socket.on('heist:phase_synced', (data) => {
+        if (this.activeHeist && this.activeHeist.roomId === data.roomId) {
+          console.log(`[Heist] Fase sincronizada por el equipo: ${data.phase + 1}`);
+          this.currentPhase = data.phase;
+          AudioManager.playCasinoWin(false);
+          this.updateHUDObjective();
+        }
+      });
+    }
   }
 
   startHeist(heistConfig) {
@@ -131,6 +143,8 @@ export class HeistCoopManager {
       AudioManager.playCasinoWin(true);
       // Trigger 4-Star police response
       window.dispatchEvent(new CustomEvent('crime:committed', { detail: { stars: 4 } }));
+      window.dispatchEvent(new CustomEvent('vault:looted'));
+      window.dispatchEvent(new CustomEvent('heist:vault_looted'));
       this.advancePhase();
     }
   }
@@ -139,11 +153,50 @@ export class HeistCoopManager {
     this.currentPhase++;
     AudioManager.playCasinoWin(false);
 
+    // Sync phase advance with server and crew members
+    if (this.network && this.network.socket && this.activeHeist) {
+      this.network.socket.emit('heist:phase_advance', {
+        roomId: this.activeHeist.roomId,
+        phase: this.currentPhase
+      });
+    }
+
     if (this.currentPhase >= this.activeHeist.phases.length) {
       // Completed Heist!
       this.completeHeist();
     } else {
       this.updateHUDObjective();
+    }
+  }
+
+  robVaultBank(player) {
+    if (this._lastVaultRob && Date.now() - this._lastVaultRob < 60000) {
+      window.dispatchEvent(new CustomEvent('notification:show', {
+        detail: { message: '⏳ La cámara acorazada de Vault 21 está vacía. Vuelve en 1 minuto.', type: 'warning' }
+      }));
+      return;
+    }
+    this._lastVaultRob = Date.now();
+    const loot = 60000;
+    this.economy.modifyCash(loot, 'Atraco a la Bóveda de Vault 21');
+    AudioManager.playCasinoWin(true);
+
+    // Notify solo mission and global heist listeners
+    window.dispatchEvent(new CustomEvent('vault:looted'));
+    window.dispatchEvent(new CustomEvent('heist:vault_looted'));
+
+    // Trigger 3 Stars police pursuit
+    window.dispatchEvent(new CustomEvent('crime:committed', { detail: { stars: 3 } }));
+
+    // Show alert / notification
+    window.dispatchEvent(new CustomEvent('notification:show', {
+      detail: { message: `💰 ¡HAS SAQUEADO LA BÓVEDA DE VAULT 21! +$${loot.toLocaleString()} (Alarma Policial Nivel 3)`, type: 'success' }
+    }));
+
+    if (this.network && this.network.socket) {
+      this.network.socket.emit('player:chat', {
+        text: `🚨 ¡ALERTA CIUDADANA! Alguien ha reventado la cámara acorazada de Vault 21 y se ha llevado $60,000 en lingotes!`
+      });
     }
   }
 

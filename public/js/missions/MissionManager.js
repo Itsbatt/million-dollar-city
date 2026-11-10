@@ -18,8 +18,8 @@ export class MissionManager {
         steps: [
           {
             text: 'Dirígete al Casino The Royal Mirage en el Diamond Strip',
-            targetPos: { x: -19, y: 0, z: 35 },
-            radius: 8.0,
+            targetPos: { x: -17.5, y: 0, z: 50.0 },
+            radius: 9.5,
             blipName: 'Casino Royal Mirage'
           },
           {
@@ -50,7 +50,7 @@ export class MissionManager {
           {
             text: 'Entrega el deportivo en el Garaje de Ocultación (Z: -90)',
             targetPos: { x: 18, y: 0, z: -90 },
-            radius: 8.0,
+            radius: 11.0,
             blipName: 'Garaje Seguro'
           }
         ],
@@ -60,17 +60,17 @@ export class MissionManager {
         id: 'mission_3',
         title: 'El Gran Golpe a Vault 21',
         subtitle: 'Atraco a la Banca Nacional',
-        reward: 75000,
+        reward: 25000,
         reputation: 600,
         steps: [
           {
-            text: 'Entra al Banco Vault 21 National Bank frente al Casino',
+            text: 'Entra a la sucursal del Banco Vault 21 National Bank frente al Casino',
             targetPos: { x: 23, y: 0, z: 30 },
-            radius: 6.0,
+            radius: 8.0,
             blipName: 'Banco Vault 21'
           },
           {
-            text: 'Fuerza la caja del banco y recoge las sacas de dinero ($75,000)',
+            text: 'Fuerza la cámara acorazada subterránea y saquea el oro macizo',
             actionType: 'LOOT_VAULT'
           },
           {
@@ -79,7 +79,59 @@ export class MissionManager {
             requiredStars: 3
           }
         ],
-        completionMessage: '¡Atraco legendario! Las sacas de Vault 21 son tuyas: +$75,000.'
+        completionMessage: '¡Atraco legendario! Has asegurado tu parte del botín: +$25,000.'
+      },
+      {
+        id: 'mission_4',
+        title: 'Arsenal Táctico y Guerra Callejera',
+        subtitle: 'Ammu-Nation Tactical Gear',
+        reward: 35000,
+        reputation: 800,
+        steps: [
+          {
+            text: 'Dirígete a la armería Ammu-Nation en Sunset Strip (Z: -45)',
+            targetPos: { x: 28, y: 0, z: -45 },
+            radius: 8.5,
+            blipName: 'Ammu-Nation'
+          },
+          {
+            text: 'Entra a la tienda y adquiere un arma de fuego o chaleco antibalas Kevlar',
+            actionType: 'ARMORY_PURCHASE'
+          },
+          {
+            text: 'Desplázate al Punto de Extracción en el Callejón Sunset (Z: 140)',
+            targetPos: { x: -35, y: 0, z: 140 },
+            radius: 9.0,
+            blipName: 'Punto de Extracción'
+          }
+        ],
+        completionMessage: '¡Territorio dominado! Has ganado control táctico y $35,000.'
+      },
+      {
+        id: 'mission_5',
+        title: 'El Magnate de Million Dollar City',
+        subtitle: 'Corona el Imperio del Millón',
+        reward: 100000,
+        reputation: 2500,
+        steps: [
+          {
+            text: 'Alcanza el club exclusivo Velvet Lounge en Diamond Strip',
+            targetPos: { x: -26, y: 0, z: -45 },
+            radius: 8.5,
+            blipName: 'Club Velvet'
+          },
+          {
+            text: 'Apuesta en las mesas VIP de The Royal Mirage Casino',
+            actionType: 'CASINO_BET'
+          },
+          {
+            text: 'Reclama la Suite Presidencial en el ático de Dynasty 8 Plaza',
+            targetPos: { x: 29.0, y: 0, z: -110.0 },
+            radius: 12.0,
+            blipName: 'Suite Presidencial • Dynasty 8 Plaza'
+          }
+        ],
+        completionMessage: '¡ENHORABUENA! Eres oficialmente el amo indiscutible de Million Dollar City.'
       }
     ];
 
@@ -88,12 +140,17 @@ export class MissionManager {
     // Listen to in-game trigger events
     window.addEventListener('casino:bet_placed', () => this.checkActionTrigger('CASINO_BET'));
     window.addEventListener('vehicle:entered', () => this.checkActionTrigger('ENTER_VEHICLE'));
+    window.addEventListener('vault:looted', () => this.checkActionTrigger('LOOT_VAULT'));
+    window.addEventListener('heist:vault_looted', () => this.checkActionTrigger('LOOT_VAULT'));
+    window.addEventListener('armory:purchased', () => this.checkActionTrigger('ARMORY_PURCHASE'));
+    window.addEventListener('casino:high_roller', () => this.checkActionTrigger('CASINO_HIGH_ROLLER'));
   }
 
   startMission(index) {
     if (index >= this.missions.length) {
       this.activeMission = null;
       this.notifyMissionUpdate();
+      window.dispatchEvent(new CustomEvent('save:state_requested'));
       return;
     }
 
@@ -103,6 +160,26 @@ export class MissionManager {
 
     console.log(`[Missions] Started Mission: ${this.activeMission.title}`);
     this.notifyMissionUpdate();
+    window.dispatchEvent(new CustomEvent('save:state_requested'));
+  }
+
+  setSavedProgress(missionIndex, stepIndex = 0) {
+    const idx = parseInt(missionIndex, 10);
+    const step = parseInt(stepIndex, 10) || 0;
+
+    if (isNaN(idx) || idx >= this.missions.length) {
+      this.activeMission = null;
+      this.notifyMissionUpdate();
+      return;
+    }
+
+    this.currentMissionIndex = Math.max(0, idx);
+    this.activeMission = this.missions[this.currentMissionIndex];
+    if (this.activeMission) {
+      this.currentStep = Math.min(Math.max(0, step), this.activeMission.steps.length - 1);
+      console.log(`[Missions] Progreso restaurado: ${this.activeMission.title} (Paso ${this.currentStep + 1}/${this.activeMission.steps.length})`);
+      this.notifyMissionUpdate();
+    }
   }
 
   update(delta, playerPos, wantedLevel = 0) {
@@ -116,14 +193,16 @@ export class MissionManager {
       const dist = new THREE.Vector3(step.targetPos.x, 0, step.targetPos.z)
         .distanceTo(new THREE.Vector3(playerPos.x, 0, playerPos.z));
 
-      if (dist <= (step.radius || 5.0)) {
+      if (dist <= (step.radius || 7.0)) {
         this.advanceStep();
+        return;
       }
     }
 
     // Check police evasion step
     if (step.actionType === 'EVADE_POLICE') {
       if (wantedLevel === 0 && this.hasTriggeredPolice) {
+        this.hasTriggeredPolice = false;
         this.advanceStep();
       }
     }
@@ -133,6 +212,7 @@ export class MissionManager {
     if (!this.activeMission) return;
     const step = this.activeMission.steps[this.currentStep];
     if (step && step.actionType === actionType) {
+      console.log(`[Missions] Action completed: ${actionType}`);
       this.advanceStep();
     }
   }
@@ -150,8 +230,11 @@ export class MissionManager {
       if (next.actionType === 'EVADE_POLICE') {
         this.hasTriggeredPolice = true;
         window.dispatchEvent(new CustomEvent('crime:committed', { detail: { stars: next.requiredStars || 2 } }));
+      } else {
+        this.hasTriggeredPolice = false;
       }
       this.notifyMissionUpdate();
+      window.dispatchEvent(new CustomEvent('save:state_requested'));
     }
   }
 

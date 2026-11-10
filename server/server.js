@@ -1,11 +1,14 @@
 const express = require('express');
+const compression = require('compression');
 const http = require('http');
 const path = require('path');
 const cors = require('cors');
+const os = require('os');
 const { Server } = require('socket.io');
 const DatabaseManager = require('./database');
 
 const app = express();
+app.use(compression());
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
@@ -16,20 +19,121 @@ const io = new Server(server, {
 
 const PORT = process.env.PORT || 3000;
 
-// Middleware
+// LAN Match Rooms Store
+const lanMatchRooms = new Map(); // roomCode -> { code, name, hostUsername, hostSocketId, maxPlayers, passCode, createdAt, players: [] }
+
+// Middleware & Aggressive Anti-Caching for School Networks
+app.set('etag', false);
 app.use(cors());
 app.use(express.json());
 app.use((req, res, next) => {
-  res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+  res.set('Pragma', 'no-cache');
+  res.set('Expires', '0');
   next();
 });
-app.use(express.static(path.join(__dirname, '../public')));
-app.use('/node_modules', express.static(path.join(__dirname, '../node_modules')));
+app.use(express.static(path.join(__dirname, '../public'), {
+  etag: false,
+  lastModified: false,
+  setHeaders: (res) => {
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
+  }
+}));
+app.use('/node_modules', express.static(path.join(__dirname, '../node_modules'), {
+  etag: false,
+  lastModified: false,
+  setHeaders: (res) => {
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+  }
+}));
 
 // Client Error Diagnostics
 app.post('/api/client-error', (req, res) => {
   console.error('\n[🚨 CLIENT ERROR FROM BROWSER]:', JSON.stringify(req.body, null, 2), '\n');
   res.json({ ok: true });
+});
+
+// LAN & Local Network Information Helper
+function getLocalIPv4Addresses() {
+  const nets = os.networkInterfaces();
+  const addresses = [];
+  for (const name of Object.keys(nets)) {
+    for (const net of nets[name]) {
+      if (net.family === 'IPv4' && !net.internal) {
+        addresses.push({ iface: name, address: net.address });
+      }
+    }
+  }
+  addresses.sort((a, b) => {
+    const isVirtualA = a.address.startsWith('192.168.56.') || a.iface.toLowerCase().includes('virtual');
+    const isVirtualB = b.address.startsWith('192.168.56.') || b.iface.toLowerCase().includes('virtual');
+    if (!isVirtualA && isVirtualB) return -1;
+    if (isVirtualA && !isVirtualB) return 1;
+    return a.address.localeCompare(b.address);
+  });
+  return addresses;
+}
+
+app.get('/api/network/lan-info', (req, res) => {
+  const ips = getLocalIPv4Addresses();
+  const primaryIp = ips[0] ? ips[0].address : 'localhost';
+  res.json({
+    success: true,
+    hostname: os.hostname(),
+    port: PORT,
+    primaryIp,
+    allIps: ips,
+    lanUrl: `http://${primaryIp}:${PORT}`,
+    activePlayers: connectedPlayers.size,
+    activeMatchesCount: lanMatchRooms.size
+  });
+});
+
+app.get('/api/match/list', (req, res) => {
+  const list = Array.from(lanMatchRooms.values()).map(r => ({
+    code: r.code,
+    name: r.name,
+    hostUsername: r.hostUsername,
+    currentPlayers: r.players.length,
+    maxPlayers: r.maxPlayers,
+    hasPassword: !!r.passCode,
+    createdAt: r.createdAt
+  }));
+  res.json({ success: true, matches: list });
+});
+
+app.post('/api/match/create', (req, res) => {
+  const { name, hostUsername, maxPlayers, passCode } = req.body;
+  const code = 'MDC-' + Math.floor(1000 + Math.random() * 9000);
+  const match = {
+    code,
+    name: (name || 'Partida de ' + (hostUsername || 'Anfitrión')).slice(0, 40),
+    hostUsername: hostUsername || 'Anfitrión',
+    maxPlayers: Math.min(32, Math.max(2, Number(maxPlayers) || 8)),
+    passCode: passCode ? String(passCode).trim() : null,
+    createdAt: new Date().toISOString(),
+    players: [{ username: hostUsername || 'Anfitrión', isHost: true }]
+  };
+  lanMatchRooms.set(code, match);
+  res.json({ success: true, match });
+});
+
+app.post('/api/match/join', (req, res) => {
+  const { code, username, passCode } = req.body;
+  const match = lanMatchRooms.get((code || '').toUpperCase().trim());
+  if (!match) return res.status(404).json({ success: false, error: 'Código de sala no encontrado' });
+  if (match.passCode && match.passCode !== String(passCode || '').trim()) {
+    return res.status(403).json({ success: false, error: 'Contraseña de sala incorrecta' });
+  }
+  if (match.players.length >= match.maxPlayers) {
+    return res.status(400).json({ success: false, error: 'La sala está completa' });
+  }
+  if (!match.players.some(p => p.username.toLowerCase() === (username || '').toLowerCase())) {
+    match.players.push({ username: username || 'Invitado', isHost: false });
+  }
+  res.json({ success: true, match });
 });
 
 // -------------------------------------------------------------
@@ -592,15 +696,56 @@ io.on('connection', (socket) => {
     });
   });
 
+  // Weapon damage specs (authoritative validation)
+  const WEAPON_DAMAGE_MAP = {
+    pistol: { min: 18, max: 26, range: 45 },
+    smg: { min: 14, max: 22, range: 35 },
+    shotgun: { min: 45, max: 75, range: 25 },
+    rifle: { min: 28, max: 38, range: 65 },
+    sniper: { min: 85, max: 110, range: 180 }
+  };
+
   socket.on('player:hit', (data) => {
+    const attacker = socket.playerData;
     const targetSocket = Array.from(io.sockets.sockets.values()).find(
       s => s.playerData && s.playerData.id === data.targetPlayerId
     );
-    if (targetSocket) {
-      targetSocket.emit('player:damaged', {
-        damage: data.damage,
-        attacker: socket.playerData ? socket.playerData.username : 'Enemigo'
+    if (!targetSocket || !targetSocket.playerData) return;
+
+    const weaponKey = data.weapon || 'pistol';
+    const spec = WEAPON_DAMAGE_MAP[weaponKey] || WEAPON_DAMAGE_MAP.pistol;
+
+    // Validate distance if attacker and victim positions exist
+    if (attacker && attacker.x !== undefined && targetSocket.playerData.x !== undefined) {
+      const dx = attacker.x - targetSocket.playerData.x;
+      const dz = attacker.z - targetSocket.playerData.z;
+      const dist = Math.sqrt(dx * dx + dz * dz);
+      if (dist > spec.range * 1.5) {
+        return; // out of range hit rejected
+      }
+    }
+
+    // Authoritative damage calculation
+    const rawDamage = Number(data.damage) || spec.min;
+    const validatedDamage = Math.min(spec.max, Math.max(spec.min, rawDamage));
+
+    targetSocket.playerData.health = Math.max(0, (targetSocket.playerData.health || 100) - validatedDamage);
+
+    targetSocket.emit('player:damaged', {
+      damage: validatedDamage,
+      attacker: attacker ? attacker.username : 'Enemigo',
+      remainingHealth: targetSocket.playerData.health
+    });
+
+    if (targetSocket.playerData.health <= 0) {
+      io.emit('player:killed', {
+        victimId: targetSocket.playerData.id,
+        victimName: targetSocket.playerData.username,
+        killerId: attacker ? attacker.id : null,
+        killerName: attacker ? attacker.username : 'Desconocido',
+        weapon: weaponKey
       });
+      targetSocket.playerData.health = 100; // Reset for respawn
     }
   });
 
@@ -786,6 +931,23 @@ io.on('connection', (socket) => {
             heistTitle: heist.heistTitle,
             role: m.role,
             members: heist.members
+          });
+        }
+      }
+    }
+  });
+
+  socket.on('heist:phase_advance', (data) => {
+    const heist = activeHeists.get(data.roomId);
+    if (heist && heist.state === 'IN_PROGRESS') {
+      heist.currentPhase = (heist.currentPhase || 1) + 1;
+      for (const m of heist.members) {
+        if (m.socketId) {
+          io.to(m.socketId).emit('heist:phase_synced', {
+            roomId: heist.roomId,
+            currentPhase: heist.currentPhase,
+            objective: data.nextObjective || `Fase ${heist.currentPhase} en curso`,
+            waypoint: data.nextWaypoint || null
           });
         }
       }

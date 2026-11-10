@@ -2,7 +2,8 @@ import * as THREE from '/vendor/three.module.js';
 
 export class CameraManager {
   constructor() {
-    this.camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 1200);
+    // Optimized clip range: near 0.2 eliminates Z-fighting, far 380 eliminates invisible offscreen city rendering
+    this.camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.2, 380);
 
     this.mode = 'PLAYER'; // 'PLAYER' | 'VEHICLE' | 'CASINO_TABLE' | 'CINEMATIC'
 
@@ -37,6 +38,13 @@ export class CameraManager {
     this.camera.updateProjectionMatrix();
   }
 
+  applyQuality(preset) {
+    if (preset && preset.farClip && this.camera.far !== preset.farClip) {
+      this.camera.far = preset.farClip;
+      this.camera.updateProjectionMatrix();
+    }
+  }
+
   setMode(mode, customParams = {}) {
     this.mode = mode;
     if (mode === 'CASINO_TABLE') {
@@ -65,19 +73,19 @@ export class CameraManager {
     // Slower mouse sensitivity when aiming for precision
     const sens = isAiming ? this.sensitivity * 0.6 : this.sensitivity;
 
-    // Apply mouse look
+    // Apply mouse look (horizontal yaw & natural non-inverted vertical pitch)
     this.yaw -= mouseDelta.x * sens;
-    this.pitch -= mouseDelta.y * sens;
+    this.pitch += mouseDelta.y * sens;
 
     // Decay recoil smoothly
-    this.pitch += this.recoilPitch;
+    this.pitch -= this.recoilPitch;
     this.yaw += this.recoilYaw;
     this.recoilPitch = THREE.MathUtils.lerp(this.recoilPitch, 0, 0.22);
     this.recoilYaw = THREE.MathUtils.lerp(this.recoilYaw, 0, 0.22);
 
-    // Clamp pitch
-    const maxPitch = Math.PI / 2.3;
-    const minPitch = -Math.PI / 4;
+    // Clamp pitch: look up to sky (-Math.PI/3) and down to ground (+Math.PI/2.4)
+    const maxPitch = Math.PI / 2.4;
+    const minPitch = -Math.PI / 3.0;
     this.pitch = Math.max(minPitch, Math.min(maxPitch, this.pitch));
 
     // Target player head/chest area
@@ -156,8 +164,8 @@ export class CameraManager {
     const carRotY = vehicle.mesh.rotation.y;
     const carSpeed = vehicle.currentSpeed || 0;
 
-    // Allow slight free look or align behind vehicle
-    this.vehiclePitch -= mouseDelta.y * this.sensitivity;
+    // Allow slight free look or align behind vehicle (natural vertical pitch)
+    this.vehiclePitch += mouseDelta.y * this.sensitivity;
     this.vehiclePitch = Math.max(0.05, Math.min(Math.PI / 2.8, this.vehiclePitch));
 
     // Smoothly blend vehicle yaw towards car rotation

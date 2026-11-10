@@ -238,26 +238,32 @@ export class WeaponSystem {
     this.muzzleLight.intensity = weapon.type === 'sniper' ? 6.5 : 4.5;
     setTimeout(() => { this.muzzleLight.intensity = 0; }, 40);
 
-    // Raycast from camera center
+    // Raycast from camera center (where crosshair aims)
+    this.camera.updateMatrixWorld();
     const raycaster = new THREE.Raycaster();
     raycaster.setFromCamera(new THREE.Vector2(0, 0), this.camera);
 
-    // Trace Ray to target or max distance
+    // Trace Ray along crosshair line of sight with spread
     const rayDir = raycaster.ray.direction.clone();
     
     // Spread calculation: 85% tighter spread when aiming ADS
-    const spreadFactor = isAiming ? (weapon.id === 'sniper' ? 0.001 : weapon.spread * 0.18) : weapon.spread;
+    const spreadFactor = isAiming ? (weapon.id === 'sniper' ? 0.0005 : weapon.spread * 0.18) : weapon.spread;
     rayDir.x += (Math.random() - 0.5) * spreadFactor;
     rayDir.y += (Math.random() - 0.5) * spreadFactor;
     rayDir.normalize();
 
-    const targetPos = handWorldPos.clone().addScaledVector(rayDir, weapon.range);
-
-    // Create luminous tracer
-    this.createTracer(handWorldPos, targetPos);
+    // Line of sight ray originating from camera
+    const aimRay = new THREE.Ray(raycaster.ray.origin, rayDir);
 
     // Check hit on pedestrians / enemies with headshot detection
-    this.checkEnemyHits(handWorldPos, rayDir, weapon.damage, enemies);
+    const hitResult = this.checkEnemyHits(aimRay, weapon.damage, enemies, weapon.range);
+
+    const targetPos = hitResult
+      ? hitResult.hitPos
+      : handWorldPos.clone().addScaledVector(rayDir, weapon.range);
+
+    // Create luminous tracer from gun barrel towards hit point or max distance
+    this.createTracer(handWorldPos, targetPos);
 
     // Police crime detection: Discharging firearm in public -> 2 Stars!
     window.dispatchEvent(new CustomEvent('crime:committed', { detail: { type: 'gunfire', stars: 2 } }));
@@ -294,36 +300,64 @@ export class WeaponSystem {
     this.tracers.push({ mesh: line, time: 0 });
   }
 
-  checkEnemyHits(origin, dir, damage, enemies) {
-    if (!enemies || !Array.isArray(enemies)) return;
-    const ray = new THREE.Ray(origin, dir);
+  checkEnemyHits(aimRay, damage, enemies, maxRange = 85) {
+    if (!enemies || !Array.isArray(enemies)) return null;
+
+    let closestHit = null;
+    let minDistance = maxRange;
+
+    const dx = aimRay.direction.x;
+    const dz = aimRay.direction.z;
+    const horizDirSq = dx * dx + dz * dz;
+
     for (const enemy of enemies) {
       if (!enemy || enemy.isDead) continue;
       const enemyPos = typeof enemy.getPosition === 'function' ? enemy.getPosition() : (enemy.pos || enemy.mesh?.position);
       if (!enemyPos) continue;
 
-      const headPos = new THREE.Vector3(enemyPos.x, enemyPos.y + 1.55, enemyPos.z);
-      const headDist = ray.distanceToPoint(headPos);
-      const bodyDist = ray.distanceToPoint(enemyPos);
+      // Vertical 3D Capsule / Cylinder Raycast:
+      // Pedestrian vertical bounding cylinder from y to y + 1.95m
+      if (horizDirSq < 0.0001) continue;
 
-      const isHeadshot = headDist < 0.28;
-      if (isHeadshot || bodyDist < 0.65) {
-        const finalDamage = isHeadshot ? damage * 2.2 : damage;
-        if (typeof enemy.takeDamage === 'function') {
-          enemy.takeDamage(finalDamage);
-        }
+      const t = ((enemyPos.x - aimRay.origin.x) * dx + (enemyPos.z - aimRay.origin.z) * dz) / horizDirSq;
+      if (t <= 0.6 || t > minDistance) continue;
 
-        // Tactile Hitmarker sound and HUD event
-        AudioManager.playHitmarker(isHeadshot);
-        window.dispatchEvent(new CustomEvent('weapon:hitmarker', {
-          detail: { isHeadshot, damage: Math.round(finalDamage) }
-        }));
+      const px = aimRay.origin.x + t * dx;
+      const pz = aimRay.origin.z + t * dz;
+      const py = aimRay.origin.y + t * aimRay.direction.y;
 
-        // Blood sparks
-        this.createImpactSparks(isHeadshot ? headPos : enemyPos, isHeadshot ? 0xd90429 : 0x990018);
-        return;
+      const hDist = Math.hypot(px - enemyPos.x, pz - enemyPos.z);
+
+      // Responsive hit registration: horizontal cylinder radius 0.85m, vertical bounds -0.2 to +2.1m
+      if (hDist < 0.85 && py >= (enemyPos.y - 0.2) && py <= (enemyPos.y + 2.1)) {
+        minDistance = t;
+        const isHeadshot = py >= (enemyPos.y + 1.35);
+        closestHit = {
+          enemy,
+          isHeadshot,
+          hitPos: new THREE.Vector3(px, py, pz)
+        };
       }
     }
+
+    if (closestHit) {
+      const finalDamage = closestHit.isHeadshot ? damage * 2.5 : damage;
+      if (typeof closestHit.enemy.takeDamage === 'function') {
+        closestHit.enemy.takeDamage(finalDamage);
+      }
+
+      // Tactile Hitmarker sound and HUD event
+      AudioManager.playHitmarker(closestHit.isHeadshot);
+      window.dispatchEvent(new CustomEvent('weapon:hitmarker', {
+        detail: { isHeadshot: closestHit.isHeadshot, damage: Math.round(finalDamage) }
+      }));
+
+      // Blood impact sparks
+      this.createImpactSparks(closestHit.hitPos, closestHit.isHeadshot ? 0xd90429 : 0xaa1122);
+      return closestHit;
+    }
+
+    return null;
   }
 
   createImpactSparks(pos, color = 0xffe066) {

@@ -54,25 +54,6 @@ export class AuthModal {
     document.getElementById('auth-close-btn')?.addEventListener('click', () => this.close());
     document.getElementById('auth-guest-btn')?.addEventListener('click', () => this.close());
 
-    // Quick OP Access for Itsbat_
-    document.getElementById('auth-admin-quick-btn')?.addEventListener('click', async () => {
-      const errorEl = document.getElementById('auth-error-msg');
-      if (errorEl) errorEl.textContent = 'Accediendo como OP Itsbat_...';
-      try {
-        await this.economy.login('Itsbat_', 'bat123');
-        this.close();
-        window.location.reload();
-      } catch (e) {
-        try {
-          await this.economy.register('Itsbat_', 'bat123');
-          this.close();
-          window.location.reload();
-        } catch (regErr) {
-          if (errorEl) errorEl.textContent = 'Error OP: ' + regErr.message;
-        }
-      }
-    });
-
     // Click backdrop to close
     this.modal?.addEventListener('click', (e) => {
       if (e.target === this.modal) this.close();

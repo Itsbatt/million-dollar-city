@@ -5,7 +5,7 @@ export class WheelOfFortuneGame {
     this.economy = economyManager;
     this.isSpinning = false;
     this.minBet = 50;
-    this.maxBet = 10000;
+    this.maxBet = Infinity; // Sin límite de apuesta
 
     this.segments = [
       { id: 0, label: '1X', mult: 1, color: '#3a86ff' },
@@ -30,8 +30,8 @@ export class WheelOfFortuneGame {
 
   spin(bet, onTick, onComplete) {
     if (this.isSpinning) return { success: false, message: 'La ruleta ya está girando' };
-    if (bet < this.minBet || bet > this.maxBet) {
-      return { success: false, message: `La apuesta debe estar entre $${this.minBet} y $${this.maxBet}` };
+    if (bet < this.minBet) {
+      return { success: false, message: `La apuesta mínima es de $${this.minBet}` };
     }
     if (!this.economy.hasCash(bet)) {
       return { success: false, message: 'No tienes suficiente efectivo para esta apuesta' };

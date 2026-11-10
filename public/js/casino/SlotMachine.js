@@ -5,7 +5,7 @@ export class SlotMachineGame {
     this.economy = economyManager;
     this.isSpinning = false;
     this.minBet = 10;
-    this.maxBet = 500;
+    this.maxBet = Infinity; // Sin límite de apuesta
     this.currentBet = 50;
 
     this.symbols = [
@@ -26,12 +26,19 @@ export class SlotMachineGame {
     }
   }
 
+  setBet(amount) {
+    const parsed = parseInt(amount, 10);
+    if (!isNaN(parsed) && parsed >= this.minBet) {
+      this.currentBet = parsed;
+    }
+  }
+
   spin(betAmount, onReelTick, onComplete) {
     if (this.isSpinning) return { success: false, message: 'Los rodillos ya están girando' };
 
-    const bet = betAmount || this.currentBet;
-    if (bet < this.minBet || bet > this.maxBet) {
-      return { success: false, message: `La apuesta debe estar entre $${this.minBet} y $${this.maxBet}` };
+    const bet = (typeof betAmount === 'number' && betAmount >= this.minBet) ? betAmount : this.currentBet;
+    if (bet < this.minBet) {
+      return { success: false, message: `La apuesta mínima es de $${this.minBet}` };
     }
 
     if (this.economy.getCash() < bet) {
@@ -50,15 +57,15 @@ export class SlotMachineGame {
 
     // Animate 3 reels stopping sequentially
     let ticks = 0;
-    const maxTicks = 25;
+    const maxTicks = 16;
     const interval = setInterval(() => {
       ticks++;
       AudioManager.playSlotSpinTick();
 
       // intermediate random symbols
-      const r1 = ticks < 14 ? this.pool[Math.floor(Math.random() * this.pool.length)] : reel1;
-      const r2 = ticks < 20 ? this.pool[Math.floor(Math.random() * this.pool.length)] : reel2;
-      const r3 = ticks < 25 ? this.pool[Math.floor(Math.random() * this.pool.length)] : reel3;
+      const r1 = ticks < 8 ? this.pool[Math.floor(Math.random() * this.pool.length)] : reel1;
+      const r2 = ticks < 12 ? this.pool[Math.floor(Math.random() * this.pool.length)] : reel2;
+      const r3 = ticks < 16 ? this.pool[Math.floor(Math.random() * this.pool.length)] : reel3;
 
       if (onReelTick) onReelTick([r1, r2, r3]);
 
@@ -68,7 +75,7 @@ export class SlotMachineGame {
         const result = this.evaluatePaylines([reel1, reel2, reel3]);
         if (onComplete) onComplete(result);
       }
-    }, 70);
+    }, 50);
 
     return { success: true };
   }
@@ -106,6 +113,7 @@ export class SlotMachineGame {
       reels,
       multiplier,
       winAmount,
+      payout: winAmount,
       isJackpot,
       message: winAmount > 0 ?
         (isJackpot ? `★ ¡¡JACKPOT HISTÓRICO!! Ganaste $${winAmount.toLocaleString()} ★` : `¡Combinación ganadora! x${multiplier} -> $${winAmount.toLocaleString()}`) :

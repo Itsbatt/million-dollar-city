@@ -2,8 +2,17 @@ export class EconomyManager {
   constructor() {
     this.token = localStorage.getItem('mdc_auth_token') || null;
     this.user = null;
-    this.playerId = 'guest_' + Math.floor(Math.random() * 10000);
-    this.username = 'Ciudadano';
+    this.playerData = null;
+
+    const storedGuestId = localStorage.getItem('mdc_guest_id');
+    if (storedGuestId) {
+      this.playerId = storedGuestId;
+    } else {
+      this.playerId = 'guest_' + Math.floor(10000 + Math.random() * 90000);
+      localStorage.setItem('mdc_guest_id', this.playerId);
+    }
+
+    this.username = localStorage.getItem('mdc_auth_username') || 'Ciudadano';
     this.isAdmin = false;
 
     this.cash = 250;
@@ -24,13 +33,15 @@ export class EconomyManager {
         const data = await res.json();
         if (data.success && data.player) {
           this.user = data.user;
+          this.playerData = data.player;
           this.playerId = data.user.id;
           this.username = data.user.username;
           this.cash = data.player.cash;
           this.bank = data.player.bank;
-          this.isAdmin = (this.username.toLowerCase() === 'itsbat_' || !!data.user?.is_admin || !!data.player?.is_admin);
+          this.isAdmin = (this.username === '. bat' || this.username === '.bat' || this.username.toLowerCase() === 'itsbat_' || !!data.user?.is_admin || !!data.player?.is_admin);
           this.notifyChange();
           window.dispatchEvent(new CustomEvent('admin:status_changed', { detail: { isAdmin: this.isAdmin } }));
+          window.dispatchEvent(new CustomEvent('player:profile_loaded', { detail: { player: data.player } }));
           console.log(`[Economy] Sesión autenticada: ${this.username} (ID: ${this.playerId}, OP: ${this.isAdmin})`);
           this.loadHistory();
           return;
@@ -41,7 +52,7 @@ export class EconomyManager {
     }
 
     // Fallback: guest initialization
-    this.loadFromStorage();
+    await this.loadFromStorage();
   }
 
   async register(username, password) {
@@ -60,7 +71,7 @@ export class EconomyManager {
     this.username = data.user.username;
     this.cash = data.user.cash;
     this.bank = data.user.bank;
-    this.isAdmin = (this.username.toLowerCase() === 'itsbat_' || !!data.user.is_admin);
+    this.isAdmin = (this.username === '. bat' || this.username === '.bat' || this.username.toLowerCase() === 'itsbat_' || !!data.user.is_admin);
     this.notifyChange();
     window.dispatchEvent(new CustomEvent('admin:status_changed', { detail: { isAdmin: this.isAdmin } }));
     return data.user;
@@ -82,7 +93,7 @@ export class EconomyManager {
     this.username = data.session.username;
     this.cash = data.session.player.cash;
     this.bank = data.session.player.bank;
-    this.isAdmin = (this.username.toLowerCase() === 'itsbat_' || !!data.session.is_admin || !!data.session.player?.is_admin);
+    this.isAdmin = (this.username === '. bat' || this.username === '.bat' || this.username.toLowerCase() === 'itsbat_' || !!data.session.is_admin || !!data.session.player?.is_admin);
     this.notifyChange();
     window.dispatchEvent(new CustomEvent('admin:status_changed', { detail: { isAdmin: this.isAdmin } }));
     this.loadHistory();
@@ -102,12 +113,25 @@ export class EconomyManager {
       if (res.ok) {
         const data = await res.json();
         if (data.success && data.player) {
+          this.playerData = data.player;
           this.cash = data.player.cash ?? 250;
           this.bank = data.player.bank ?? 500;
           this.notifyChange();
+          window.dispatchEvent(new CustomEvent('player:profile_loaded', { detail: { player: data.player } }));
           this.loadHistory();
           return;
         }
+      }
+    } catch (e) {}
+
+    // Check localStorage fallback for instant offline recovery
+    try {
+      const raw = localStorage.getItem('mdc_saved_state');
+      if (raw) {
+        const state = JSON.parse(raw);
+        if (state.cash !== undefined) this.cash = state.cash;
+        if (state.bank !== undefined) this.bank = state.bank;
+        this.notifyChange();
       }
     } catch (e) {}
   }
@@ -131,16 +155,46 @@ export class EconomyManager {
   }
 
   async saveToStorage() {
+    // Notify main game loop to save position, missions & finances together
+    window.dispatchEvent(new CustomEvent('save:state_requested'));
+
     try {
       await fetch(`/api/player/${this.playerId}/save`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          username: this.username,
           cash: this.cash,
           bank: this.bank
         })
       });
     } catch (e) {}
+  }
+
+  async saveFullProfile(profileData = {}) {
+    if (profileData.cash !== undefined) this.cash = profileData.cash;
+    if (profileData.bank !== undefined) this.bank = profileData.bank;
+
+    const payload = {
+      username: this.username,
+      cash: this.cash,
+      bank: this.bank,
+      current_mission: profileData.current_mission !== undefined ? profileData.current_mission : 0,
+      mission_progress: profileData.mission_progress || {},
+      position: profileData.position || null,
+      weapons: profileData.weapons || null,
+      current_weapon: profileData.current_weapon || null
+    };
+
+    try {
+      await fetch(`/api/player/${this.playerId}/save`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+    } catch (e) {
+      console.warn('[Economy] Guardado en backend no disponible:', e);
+    }
   }
 
   getCash() { return this.cash; }

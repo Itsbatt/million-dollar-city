@@ -1895,3 +1895,497 @@ body.ui-active #game-container {
   border-color: var(--primary-gold);
   color: var(--primary-gold);
 }
+
+/* ==============================================================
+   LOADING SCREEN & ENGINE BOOTLOADER
+   ============================================================== */
+
+#loading-screen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle at center, #0e1422 0%, #05070c 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  transition: opacity 0.6s ease, visibility 0.6s ease;
+}
+
+#loading-screen.fade-out {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  display: none !important;
+}
+
+.loading-box {
+  width: 90%;
+  max-width: 520px;
+  background: rgba(14, 18, 30, 0.95);
+  border: 2px solid var(--border-cyan);
+  box-shadow: 0 0 45px rgba(0, 240, 255, 0.22), inset 0 0 20px rgba(0, 0, 0, 0.8);
+  border-radius: 12px;
+  padding: 36px 32px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+}
+
+.loading-logo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.loading-chip {
+  font-size: 46px;
+  filter: drop-shadow(0 0 12px rgba(255, 215, 0, 0.6));
+  animation: pulseChip 2s infinite ease-in-out;
+}
+
+@keyframes pulseChip {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.12); }
+}
+
+.loading-title {
+  font-family: 'Chakra Petch', sans-serif;
+  font-size: 26px;
+  font-weight: 900;
+  letter-spacing: 2px;
+  background: linear-gradient(90deg, #00f0ff, #ffd700, #00ff88);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.loading-subtitle {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 3px;
+  color: #8892b0;
+}
+
+.loading-bar-wrapper {
+  width: 100%;
+  height: 10px;
+  background: #080b12;
+  border: 1px solid var(--border-cyan);
+  border-radius: 6px;
+  overflow: hidden;
+  margin-top: 8px;
+}
+
+#loading-bar-fill {
+  width: 10%;
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary-cyan), var(--neon-green));
+  box-shadow: 0 0 10px var(--primary-cyan);
+  border-radius: 6px;
+  transition: width 0.35s ease;
+}
+
+#loading-status-text {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 13px;
+  color: #ccd6f6;
+  font-weight: 600;
+  min-height: 20px;
+}
+
+.loading-tip {
+  font-size: 11px;
+  color: #64748b;
+  font-style: italic;
+  max-width: 440px;
+  line-height: 1.4;
+}
+
+/* ==============================================================
+   LAN MULTIPLAYER LOBBY SCREEN (PRE-PARTIDA)
+   ============================================================== */
+
+#lan-lobby-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(4, 6, 12, 0.92);
+  backdrop-filter: blur(8px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 5000;
+}
+
+#lan-lobby-modal.visible {
+  display: flex;
+}
+
+.lan-lobby-panel {
+  width: 90%;
+  max-width: 720px;
+  background: rgba(13, 17, 28, 0.98);
+  border: 2px solid var(--border-cyan);
+  border-radius: 12px;
+  box-shadow: 0 0 50px rgba(0, 240, 255, 0.18);
+  padding: 28px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.lan-lobby-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(0, 240, 255, 0.2);
+  padding-bottom: 14px;
+}
+
+.lan-lobby-title {
+  font-family: 'Chakra Petch', sans-serif;
+  font-size: 22px;
+  font-weight: 800;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.lan-tabs-bar {
+  display: flex;
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 6px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.lan-tab-btn {
+  flex: 1;
+  background: transparent;
+  border: 1px solid transparent;
+  color: #8892b0;
+  padding: 10px 14px;
+  font-family: 'Chakra Petch', sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+}
+
+.lan-tab-btn:hover {
+  color: #ffffff;
+  background: rgba(0, 240, 255, 0.1);
+}
+
+.lan-tab-btn.active {
+  background: rgba(0, 240, 255, 0.22);
+  border-color: var(--primary-cyan);
+  color: var(--primary-cyan);
+  box-shadow: 0 0 12px rgba(0, 240, 255, 0.2);
+}
+
+.lan-tab-content {
+  display: none;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.lan-tab-content.active {
+  display: flex;
+}
+
+.lan-info-card {
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(0, 240, 255, 0.2);
+  border-radius: 8px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.lan-ip-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: rgba(0, 240, 255, 0.08);
+  border: 1px dashed var(--primary-cyan);
+  border-radius: 6px;
+  padding: 10px 14px;
+}
+
+.lan-ip-text {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 18px;
+  font-weight: bold;
+  color: var(--primary-cyan);
+}
+
+.lan-copy-btn {
+  background: var(--primary-cyan);
+  color: #000;
+  border: none;
+  border-radius: 4px;
+  padding: 6px 14px;
+  font-family: 'Chakra Petch', sans-serif;
+  font-weight: 700;
+  font-size: 12px;
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.lan-copy-btn:hover {
+  background: #73f7ff;
+  transform: scale(1.04);
+}
+
+.lan-code-badge {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 24px;
+  font-weight: 900;
+  letter-spacing: 3px;
+  color: var(--primary-gold);
+  text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+  background: rgba(255, 215, 0, 0.1);
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 215, 0, 0.35);
+  display: inline-block;
+}
+
+.lan-player-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-height: 48px;
+  padding: 10px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.lan-player-badge {
+  background: rgba(0, 255, 136, 0.15);
+  border: 1px solid rgba(0, 255, 136, 0.4);
+  color: #00ff88;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.lan-player-badge.host {
+  background: rgba(255, 215, 0, 0.2);
+  border-color: var(--primary-gold);
+  color: var(--primary-gold);
+}
+
+.lan-help-banner {
+  background: rgba(255, 183, 3, 0.08);
+  border-left: 3px solid #ffb703;
+  padding: 10px 14px;
+  border-radius: 4px;
+  font-size: 11.5px;
+  color: #e2e8f0;
+  line-height: 1.5;
+}
+
+.lan-action-btn {
+  background: linear-gradient(90deg, #ff9900, #ff5500);
+  color: #fff;
+  border: none;
+  font-family: 'Chakra Petch', sans-serif;
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  padding: 14px 28px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 15px rgba(255, 110, 0, 0.4);
+  width: 100%;
+  text-align: center;
+}
+
+.lan-action-btn:hover {
+  background: linear-gradient(90deg, #ffa61a, #ff6a1a);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(255, 110, 0, 0.6);
+}
+
+.lan-action-btn.secondary {
+  background: rgba(0, 240, 255, 0.15);
+  border: 1px solid var(--primary-cyan);
+  color: var(--primary-cyan);
+  box-shadow: none;
+}
+
+.lan-action-btn.secondary:hover {
+  background: rgba(0, 240, 255, 0.28);
+  box-shadow: 0 0 15px rgba(0, 240, 255, 0.35);
+}
+
+/* ==============================================================
+   AUTHENTIC CASINO MINIGAMES STYLES (VIDEO POKER, PACHINKO, CRAPS)
+   ============================================================== */
+
+/* Video Poker */
+.poker-payout-table {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  background: #060912;
+  border: 1px solid rgba(0, 240, 255, 0.25);
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin-bottom: 12px;
+}
+
+.vp-pay-row {
+  display: flex;
+  justify-content: space-between;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  color: #94a3b8;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+.vp-pay-row.active-win {
+  background: rgba(255, 215, 0, 0.25);
+  color: #ffd700;
+  font-weight: bold;
+  box-shadow: 0 0 8px rgba(255, 215, 0, 0.4);
+}
+
+.vp-cards-container {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  min-height: 140px;
+  margin: 12px 0;
+}
+
+.vp-card-box {
+  width: 90px;
+  height: 130px;
+  background: #ffffff;
+  border-radius: 8px;
+  border: 2px solid #cbd5e1;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 6px 8px;
+  position: relative;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  user-select: none;
+}
+
+.vp-card-box:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 20px rgba(0, 240, 255, 0.4);
+}
+
+.vp-card-box.held {
+  border-color: #ffd700;
+  box-shadow: 0 0 15px rgba(255, 215, 0, 0.6);
+  transform: translateY(-8px);
+}
+
+.vp-hold-tag {
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #ffd700;
+  color: #000;
+  font-family: 'Chakra Petch', sans-serif;
+  font-weight: 900;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+/* Craps */
+.craps-dice {
+  font-size: 42px;
+  line-height: 1;
+  color: #ffffff;
+  filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.5));
+  transition: transform 0.3s ease;
+}
+
+.craps-dice.rolling {
+  animation: diceShake 0.4s infinite ease-in-out;
+}
+
+@keyframes diceShake {
+  0% { transform: rotate(0deg) scale(1); }
+  25% { transform: rotate(-15deg) scale(1.1); }
+  75% { transform: rotate(15deg) scale(1.1); }
+  100% { transform: rotate(0deg) scale(1); }
+}
+
+.craps-betting-table {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin: 12px 0;
+}
+
+.craps-bet-box {
+  background: #092014;
+  border: 1px solid #2d6a4f;
+  border-radius: 8px;
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.craps-bet-box:hover {
+  background: #113320;
+  border-color: #52b788;
+  box-shadow: 0 0 12px rgba(82, 183, 136, 0.3);
+}
+
+.craps-bet-title {
+  font-family: 'Chakra Petch', sans-serif;
+  font-weight: bold;
+  font-size: 13px;
+  color: #74c69d;
+  margin-bottom: 4px;
+}
+
+.craps-bet-desc {
+  font-size: 11px;
+  color: #b7e4c7;
+  line-height: 1.3;
+}
+
+.craps-current-wager {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 14px;
+  font-weight: bold;
+  color: #ffd700;
+  margin-top: 6px;
+}

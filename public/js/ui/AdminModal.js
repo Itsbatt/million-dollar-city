@@ -202,10 +202,12 @@ export class AdminModal {
     window.addEventListener('keydown', (e) => {
       if (e.code === 'F2') {
         e.preventDefault();
-        if (this.economy.isAdmin || this.economy.username?.toLowerCase() === 'itsbat_') {
+        const user = this.economy.username || '';
+        const isOp = this.economy.isAdmin || user === '. bat' || user === '.bat' || user.toLowerCase() === 'itsbat_';
+        if (isOp) {
           this.toggle();
         } else {
-          this.showToast('⚡ Requiere privilegios OP (Inicia sesión como Itsbat_)');
+          this.showToast('🔒 Requiere cuenta con credenciales OP de Administrador');
         }
       }
     });

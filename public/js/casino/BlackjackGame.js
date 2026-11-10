@@ -9,10 +9,10 @@ export class BlackjackGame {
     this.currentBet = 0;
     this.gameState = 'BETTING'; // 'BETTING', 'PLAYER_TURN', 'DEALER_TURN', 'RESOLVED'
     this.minBet = 25;
-    this.maxBet = 5000;
+    this.maxBet = Infinity; // Sin límite de apuesta
   }
 
-  setBetLimits(min, max) {
+  setBetLimits(min, max = Infinity) {
     this.minBet = min;
     this.maxBet = max;
   }
@@ -64,8 +64,8 @@ export class BlackjackGame {
   }
 
   startNewGame(betAmount) {
-    if (betAmount < this.minBet || betAmount > this.maxBet) {
-      return { success: false, message: `La apuesta debe estar entre $${this.minBet} y $${this.maxBet}` };
+    if (betAmount < this.minBet) {
+      return { success: false, message: `La apuesta mínima es de $${this.minBet}` };
     }
 
     if (this.economy.getCash() < betAmount) {

@@ -3,8 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
   <title>MILLION DOLLAR CITY | 3D Open World Multiplayer Casino</title>
-  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="./css/style.css?v=3.1.0">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎰</text></svg>">
   <script>
     window.__clientErrors = [];
@@ -19,6 +22,11 @@
       };
       window.__clientErrors.push(data);
       console.error('[Error Tracker]', data);
+      var status = document.getElementById('loading-status-text');
+      if (status) {
+        status.style.color = '#ff2a4d';
+        status.innerHTML = '⚠️ Error al cargar: ' + (data.message || 'Error de script') + '<br><button onclick="window.location.reload(true)" style="margin-top:12px;padding:8px 16px;background:#00f0ff;color:#000;border:none;border-radius:4px;cursor:pointer;font-weight:bold;">FORZAR RECARGA (LIMPIAR CACHÉ)</button>';
+      }
       try {
         fetch('/api/client-error', {
           method: 'POST',
@@ -47,6 +55,109 @@
   </script>
 </head>
 <body>
+
+  <!-- Loading Screen & Engine Bootloader -->
+  <div id="loading-screen">
+    <div class="loading-box">
+      <div class="loading-logo">
+        <span class="loading-chip">🎰</span>
+        <div class="loading-title">MILLION DOLLAR CITY</div>
+        <div class="loading-subtitle">3D OPEN WORLD MULTIPLAYER CASINO</div>
+      </div>
+      <div class="loading-bar-wrapper">
+        <div id="loading-bar-fill" style="width: 15%;"></div>
+      </div>
+      <div id="loading-status-text">Inicializando motor gráfico WebGL...</div>
+      <div class="loading-tip">Consejo: Juega con tus amigos en la misma red Wi-Fi o crea golpes cooperativos desde el móvil [M].</div>
+    </div>
+  </div>
+
+  <!-- LAN Multiplayer Lobby & Matchmaker Screen -->
+  <div id="lan-lobby-modal">
+    <div class="lan-lobby-panel">
+      <div class="lan-lobby-header">
+        <div class="lan-lobby-title">
+          <span>🌐</span> MULTIJUGADOR LAN • SALA DE PARTIDA
+        </div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <label style="font-size:12px; color:#8892b0; font-family:'Chakra Petch', sans-serif;">GRÁFICOS:</label>
+          <select id="lan-quality-select" style="background:#000; border:1px solid var(--border-cyan); color:#00f0ff; padding:4px 8px; border-radius:4px; font-weight:bold; font-size:12px;">
+            <option value="VERY_LOW" selected>Escolar 60 FPS (i5 Clase / Intel HD)</option>
+            <option value="LOW">Bajo (Portátiles)</option>
+            <option value="MEDIUM">Medio (60 FPS Estable)</option>
+            <option value="HIGH">Alto (GPU Dedicada)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="lan-tabs-bar">
+        <button class="lan-tab-btn active" data-tab="solo">🎮 MODO DIRECTO</button>
+        <button class="lan-tab-btn" data-tab="host">👑 CREAR PARTIDA LAN</button>
+        <button class="lan-tab-btn" data-tab="join">🔗 UNIRSE A PARTIDA</button>
+      </div>
+
+      <!-- Tab 1: Direct Entry -->
+      <div id="lan-tab-solo" class="lan-tab-content active">
+        <div class="lan-info-card">
+          <div style="font-size:15px; font-weight:bold; color:#fff;">Entrar a la Ciudad (Servidor Activo)</div>
+          <div style="font-size:13px; color:#aaa; line-height:1.5;">
+            Inicia tu aventura directamente en la ciudad. Los demás jugadores conectados a la red podrán verte e interactuar contigo en tiempo real.
+          </div>
+        </div>
+        <button id="lan-play-solo-btn" class="lan-action-btn">
+          ¡ENTRAR A MILLION DOLLAR CITY! 🚀
+        </button>
+      </div>
+
+      <!-- Tab 2: Host LAN Match -->
+      <div id="lan-tab-host" class="lan-tab-content">
+        <div class="lan-info-card">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div>
+              <div style="font-size:12px; color:#8892b0;">ENLACE DIRECTO PARA AMIGOS (MISMA WI-FI):</div>
+              <div id="lan-host-ip-display" class="lan-ip-text">192.168.1.13:3000</div>
+            </div>
+            <button id="lan-copy-ip-btn" class="lan-copy-btn">COPIAR ENLACE</button>
+          </div>
+        </div>
+
+        <div style="display:flex; gap:12px; align-items:center;">
+          <div style="flex:1;">
+            <label style="font-size:12px; color:#8892b0; display:block; margin-bottom:4px;">NOMBRE DE LA SALA:</label>
+            <input type="text" id="lan-host-name-input" value="Partida de Clase" style="width:100%; background:#05070c; border:1px solid rgba(0,240,255,0.3); color:#fff; padding:10px; border-radius:6px; font-size:14px;">
+          </div>
+          <div style="text-align:center;">
+            <div style="font-size:12px; color:#8892b0; margin-bottom:4px;">CÓDIGO DE SALA:</div>
+            <div id="lan-host-code-display" class="lan-code-badge">MDC-LAN</div>
+          </div>
+        </div>
+
+        <div class="lan-help-banner">
+          <b>ℹ️ Instrucciones para jugar con amigos:</b><br>
+          1. Aseguraos de que todos los ordenadores están conectados a la misma red Wi-Fi o red de clase.<br>
+          2. Comparte el enlace directo con tus compañeros. Ellos sólo deben abrirlo en su navegador (Brave, Chrome o Edge).<br>
+          3. Pulsa "INICIAR Y ENTRAR A LA CIUDAD" para entrar como anfitrión.
+        </div>
+
+        <button id="lan-launch-host-btn" class="lan-action-btn">
+          INICIAR Y ENTRAR A LA CIUDAD 👑
+        </button>
+      </div>
+
+      <!-- Tab 3: Join LAN Match -->
+      <div id="lan-tab-join" class="lan-tab-content">
+        <div class="lan-info-card">
+          <label style="font-size:13px; color:#ccd6f6; margin-bottom:6px; font-weight:bold;">DIRECCIÓN IP DEL ANFITRIÓN O CÓDIGO DE SALA:</label>
+          <input type="text" id="lan-join-code-input" placeholder="Ej: 192.168.1.13:3000 o MDC-4581" style="width:100%; background:#05070c; border:1px solid rgba(0,240,255,0.4); color:#00f0ff; padding:12px; font-family:'Share Tech Mono', monospace; font-size:16px; border-radius:6px;">
+          <div id="lan-join-status" style="font-size:12px; color:#ffd700; min-height:16px;"></div>
+        </div>
+
+        <button id="lan-join-connect-btn" class="lan-action-btn">
+          CONECTAR Y ENTRAR 🔗
+        </button>
+      </div>
+    </div>
+  </div>
 
   <!-- WebGL 3D Canvas Container -->
   <div id="game-container"></div>
@@ -176,7 +287,6 @@
       <span><span class="hint-pill">E</span> Interactuar</span>
       <span><span class="hint-pill">1-5</span> Armas</span>
       <span><span class="hint-pill">M</span> Móvil</span>
-      <span><span class="hint-pill gold">F2</span> Admin OP</span>
     </div>
   </div>
 
@@ -211,7 +321,6 @@
       </div>
       <div style="margin-top:10px; display:flex; gap:8px; justify-content:center;">
         <button id="auth-guest-btn" class="casino-btn secondary" style="font-size:10px; padding:6px 14px;">Continuar como Invitado</button>
-        <button id="auth-admin-quick-btn" class="casino-btn" style="font-size:10px; padding:6px 14px; background:linear-gradient(135deg, #ffd700, #ff8800); color:#000; font-weight:800; border:none; box-shadow:0 0 10px rgba(255,215,0,0.5);">⚡ Entrar como OP (Itsbat_)</button>
       </div>
     </div>
   </div>
@@ -456,14 +565,17 @@
       </div>
 
       <div id="bj-betting-group">
-        <div style="text-align:center; font-size:12px; color:#aaa; margin-top:14px;">ELIGE FICHA PARA APOSTAR:</div>
-        <div class="chips-bar">
+        <div style="text-align:center; font-size:12px; color:#ffd700; margin-top:14px; font-weight:bold;">APUESTAS SIN LÍMITE (HIGH ROLLER):</div>
+        <div class="chips-bar" style="flex-wrap:wrap; justify-content:center;">
           <button class="chip-btn chip-25 bj-chip-btn" data-bet="25">$25</button>
           <button class="chip-btn chip-50 bj-chip-btn" data-bet="50">$50</button>
           <button class="chip-btn chip-100 bj-chip-btn" data-bet="100">$100</button>
           <button class="chip-btn chip-500 bj-chip-btn" data-bet="500">$500</button>
           <button class="chip-btn chip-1000 bj-chip-btn" data-bet="1000">$1K</button>
           <button class="chip-btn chip-5000 bj-chip-btn" data-bet="5000">$5K</button>
+          <button class="chip-btn bj-chip-btn" data-bet="25000" style="background:linear-gradient(135deg, #9b5de5, #f15bb5); border:1px solid #ffd700;">$25K</button>
+          <button class="chip-btn bj-chip-btn" data-bet="100000" style="background:linear-gradient(135deg, #ffd700, #ff8800); color:#000; font-weight:bold; border:1px solid #fff;">$100K</button>
+          <button class="chip-btn bj-chip-btn" data-bet="500000" style="background:linear-gradient(135deg, #00f0ff, #0077b6); font-weight:bold; border:1px solid #00f0ff;">$500K</button>
         </div>
       </div>
     </div>
@@ -548,12 +660,15 @@
       </div>
 
       <div style="display:flex; justify-content:space-between; align-items:center; margin-top:16px;">
-        <div class="chips-bar" style="margin:0;">
+        <div class="chips-bar" style="margin:0; flex-wrap:wrap;">
           <button class="chip-btn chip-10 roulette-chip-btn" data-chip="10" style="background:#555;">$10</button>
           <button class="chip-btn chip-50 roulette-chip-btn active" data-chip="50">$50</button>
           <button class="chip-btn chip-100 roulette-chip-btn" data-chip="100">$100</button>
           <button class="chip-btn chip-500 roulette-chip-btn" data-chip="500">$500</button>
           <button class="chip-btn chip-1000 roulette-chip-btn" data-chip="1000">$1K</button>
+          <button class="chip-btn roulette-chip-btn" data-chip="5000" style="background:#8338ec;">$5K</button>
+          <button class="chip-btn roulette-chip-btn" data-chip="25000" style="background:#ff006e;">$25K</button>
+          <button class="chip-btn roulette-chip-btn" data-chip="100000" style="background:linear-gradient(135deg, #ffd700, #ff8800); color:#000; font-weight:bold;">$100K</button>
         </div>
 
         <div style="display:flex; gap:12px;">
@@ -585,9 +700,25 @@
           ¡Prueba suerte y llévate el millón!
         </div>
 
-        <div style="display:flex; align-items:center; gap:12px;">
-          <label style="font-size:13px; color:#aaa;">APUESTA ($):</label>
-          <input type="number" id="slots-bet-input" value="50" min="10" max="500" step="10" style="width:90px; background:#000; border:1px solid #ffd700; color:#fff; padding:6px; font-weight:bold; text-align:center; border-radius:4px;">
+        <div style="display:flex; justify-content:space-between; width:100%; font-size:13px; color:#aaa; padding:0 8px;">
+          <span>ÚLTIMA GANANCIA: <b id="slot-last-win" style="color:#00ff88; font-size:16px;">$0</b></span>
+          <span>APUESTA ACTUAL: <b id="slot-current-bet" style="color:#ffd700; font-size:16px;">$50</b></span>
+        </div>
+
+        <div style="display:flex; flex-direction:column; align-items:center; gap:8px; width:100%;">
+          <div style="display:flex; align-items:center; gap:12px;">
+            <label style="font-size:13px; color:#ffd700; font-weight:bold;">APUESTA ($):</label>
+            <input type="number" id="slots-bet-input" value="50" min="10" max="100000000" step="50" style="width:120px; background:#000; border:1px solid #ffd700; color:#fff; padding:6px; font-weight:bold; text-align:center; border-radius:4px; font-size:15px;">
+          </div>
+          <div style="display:flex; gap:6px; flex-wrap:wrap; justify-content:center;">
+            <button class="casino-btn secondary slot-quick-bet" data-bet="50" style="padding:4px 8px; font-size:11px;">$50</button>
+            <button class="casino-btn secondary slot-quick-bet" data-bet="250" style="padding:4px 8px; font-size:11px;">$250</button>
+            <button class="casino-btn secondary slot-quick-bet" data-bet="1000" style="padding:4px 8px; font-size:11px;">$1K</button>
+            <button class="casino-btn secondary slot-quick-bet" data-bet="10000" style="padding:4px 8px; font-size:11px;">$10K</button>
+            <button class="casino-btn secondary slot-quick-bet" data-bet="50000" style="padding:4px 8px; font-size:11px;">$50K</button>
+            <button class="casino-btn secondary slot-quick-bet" data-bet="250000" style="padding:4px 8px; font-size:11px; background:linear-gradient(135deg, #ffd700, #ff8800); color:#000; font-weight:bold;">$250K</button>
+            <button class="casino-btn slot-quick-bet" data-bet="1000000" style="padding:4px 8px; font-size:11px; background:linear-gradient(135deg, #00f0ff, #00ff88); color:#000; font-weight:bold;">$1M</button>
+          </div>
         </div>
 
         <button id="slots-spin-btn" class="casino-btn" style="font-size:18px; padding:14px 44px; width:100%;">
@@ -668,6 +799,616 @@
     </div>
   </div>
 
+  <!-- 5. VIDEO POKER JACKS OR BETTER MODAL -->
+  <div id="video-poker-modal" class="game-modal">
+    <div class="modal-content-panel" style="max-width:760px;">
+      <div class="modal-header">
+        <div class="modal-title">🃏 VIDEO POKER • JACKS OR BETTER VIP 🃏</div>
+        <button id="vp-close-btn" class="modal-close-btn">✕</button>
+      </div>
+
+      <div class="poker-payout-table">
+        <div class="vp-pay-row" data-rank="royal"><span>ESCALERA REAL</span><span>250x</span></div>
+        <div class="vp-pay-row" data-rank="strflush"><span>ESCALERA DE COLOR</span><span>50x</span></div>
+        <div class="vp-pay-row" data-rank="4kind"><span>PÓKER (4 IGUALES)</span><span>25x</span></div>
+        <div class="vp-pay-row" data-rank="full"><span>FULL HOUSE</span><span>9x</span></div>
+        <div class="vp-pay-row" data-rank="flush"><span>COLOR (FLUSH)</span><span>6x</span></div>
+        <div class="vp-pay-row" data-rank="straight"><span>ESCALERA</span><span>4x</span></div>
+        <div class="vp-pay-row" data-rank="3kind"><span>TRÍO</span><span>3x</span></div>
+        <div class="vp-pay-row" data-rank="2pair"><span>DOBLE PAREJA</span><span>2x</span></div>
+        <div class="vp-pay-row" data-rank="job"><span>JACKS OR BETTER (J, Q, K, A)</span><span>1x</span></div>
+      </div>
+
+      <div id="vp-cards-row" class="vp-cards-container">
+        <!-- 5 cards dynamically rendered with HOLD toggle -->
+      </div>
+
+      <div id="vp-status-msg" style="text-align:center; color:#ffd700; font-weight:bold; font-size:16px; min-height:24px; margin: 10px 0;">
+        Haz tu apuesta y pulsa REPARTIR
+      </div>
+
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; margin-top:8px;">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <label style="font-size:12px; color:#aaa;">APUESTA:</label>
+          <input type="number" id="vp-bet-input" value="100" min="50" max="10000" step="50" style="width:100px; background:#000; border:1px solid var(--border-cyan); color:#00f0ff; padding:8px; font-weight:bold; text-align:center; border-radius:4px;">
+          <button class="chip-btn chip-50 vp-quick-bet" data-bet="50">$50</button>
+          <button class="chip-btn chip-100 vp-quick-bet" data-bet="100">$100</button>
+          <button class="chip-btn chip-500 vp-quick-bet" data-bet="500">$500</button>
+        </div>
+
+        <div style="display:flex; gap:10px;">
+          <button id="vp-deal-btn" class="casino-btn" style="padding:10px 24px; font-size:15px;">REPARTIR 🎴</button>
+          <button id="vp-draw-btn" class="casino-btn" style="padding:10px 24px; font-size:15px; background:linear-gradient(90deg, #00f0ff, #0077ff); display:none;">ROBAR / DRAW 🔄</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6. PACHINKO TOKYO 777 MODAL -->
+  <div id="pachinko-modal" class="game-modal">
+    <div class="modal-content-panel" style="max-width:520px; text-align:center;">
+      <div class="modal-header">
+        <div class="modal-title">🌸 TOKYO PACHINKO 777 🌸</div>
+        <button id="pachinko-close-btn" class="modal-close-btn">✕</button>
+      </div>
+
+      <div style="display:flex; justify-content:center; margin:8px 0 4px 0;">
+        <canvas id="pachinko-canvas" width="460" height="540" style="border-radius:8px; box-shadow:0 0 25px rgba(0,240,255,0.25);"></canvas>
+      </div>
+
+      <div id="pachinko-status-msg" style="color:#00ff88; font-weight:bold; font-size:14px; min-height:20px; margin-bottom:6px; letter-spacing:0.5px;">
+        ¡Dispara bolas y acierta en el jackpot ★ 777 ★!
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:8px; margin-top:4px;">
+        <div style="display:flex; justify-content:center; align-items:center; gap:8px;">
+          <label style="font-size:12px; color:#aaa; font-weight:bold;">APUESTA / BOLA ($):</label>
+          <input type="number" id="pachinko-bet-input" value="50" min="10" step="25" style="width:110px; background:#000; border:1px solid #ffd700; color:#ffd700; padding:5px 8px; font-weight:bold; text-align:center; border-radius:4px; font-size:14px;">
+          <select id="pachinko-bet-select" style="background:#000; border:1px solid #ffd700; color:#ffd700; padding:5px 8px; border-radius:4px; font-weight:bold; font-size:12px;">
+            <option value="25">$25</option>
+            <option value="50" selected>$50</option>
+            <option value="100">$100</option>
+            <option value="500">$500</option>
+            <option value="1000">$1,000</option>
+            <option value="10000">$10,000</option>
+            <option value="50000">$50,000</option>
+            <option value="100000">$100,000</option>
+          </select>
+        </div>
+
+        <div style="display:flex; justify-content:center; gap:6px; flex-wrap:wrap;">
+          <button id="pachinko-launch-1-btn" class="casino-btn secondary" style="padding:8px 12px; font-size:12px;">1 BOLA ⚪</button>
+          <button id="pachinko-launch-5-btn" class="casino-btn" style="padding:8px 14px; font-size:12px;">5 BOLAS ⚪</button>
+          <button id="pachinko-launch-10-btn" class="casino-btn" style="padding:8px 14px; font-size:12px; background:linear-gradient(90deg, #ff007f, #ffaa00);">10 BOLAS 💥</button>
+          <button id="pachinko-launch-20-btn" class="casino-btn" style="padding:8px 14px; font-size:12px; background:linear-gradient(90deg, #ffd700, #ff0055); color:#000; font-weight:bold;">20 BOLAS ⚡</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 7. CRAPS / DADOS DE CASINO MODAL -->
+  <div id="craps-modal" class="game-modal">
+    <div class="modal-content-panel" style="max-width:720px;">
+      <div class="modal-header">
+        <div class="modal-title">🎲 DADOS / CRAPS DE LAS VEGAS 🎲</div>
+        <button id="craps-close-btn" class="modal-close-btn">✕</button>
+      </div>
+
+      <div style="display:flex; justify-content:space-between; align-items:center; background:#0b1d12; border:2px solid #2d6a4f; border-radius:8px; padding:16px; margin:12px 0;">
+        <div style="display:flex; align-items:center; gap:16px;">
+          <div id="craps-point-puck" style="background:#d90429; color:#fff; font-family:'Share Tech Mono', monospace; font-size:16px; font-weight:bold; padding:8px 16px; border-radius:50px; border:2px solid #fff;">
+            POINT: OFF
+          </div>
+          <div id="craps-dice-display" style="display:flex; gap:12px;">
+            <div id="dice-1" class="craps-dice">⚄</div>
+            <div id="dice-2" class="craps-dice">⚂</div>
+          </div>
+        </div>
+
+        <div style="text-align:right;">
+          <div style="font-size:12px; color:#88d49e;">SUMA TOTAL:</div>
+          <div id="craps-sum-val" style="font-family:'Chakra Petch', sans-serif; font-size:32px; font-weight:900; color:#ffd700;">8</div>
+        </div>
+      </div>
+
+      <div class="craps-betting-table">
+        <div class="craps-bet-box" data-bet="passLine">
+          <div class="craps-bet-title">LÍNEA DE PASE (PASS LINE)</div>
+          <div class="craps-bet-desc">7 u 11 en Come-Out gana (1:1). 2, 3 o 12 pierde.</div>
+          <div class="craps-current-wager" id="wager-passLine">$0</div>
+        </div>
+        <div class="craps-bet-box" data-bet="field">
+          <div class="craps-bet-title">FIELD (1 TIRADA)</div>
+          <div class="craps-bet-desc">Gana en 2, 3, 4, 9, 10, 11, 12 (Doble en 2, Triple en 12)</div>
+          <div class="craps-current-wager" id="wager-field">$0</div>
+        </div>
+        <div class="craps-bet-box" data-bet="anySeven">
+          <div class="craps-bet-title">ANY SEVEN (PAGA 4:1)</div>
+          <div class="craps-bet-desc">Gana si la suma es exactamente 7.</div>
+          <div class="craps-current-wager" id="wager-anySeven">$0</div>
+        </div>
+        <div class="craps-bet-box" data-bet="anyCraps">
+          <div class="craps-bet-title">ANY CRAPS (PAGA 7:1)</div>
+          <div class="craps-bet-desc">Gana si sale 2, 3 o 12 en la tirada.</div>
+          <div class="craps-current-wager" id="wager-anyCraps">$0</div>
+        </div>
+      </div>
+
+      <div id="craps-status-msg" style="text-align:center; color:#ffd700; font-weight:bold; font-size:15px; margin: 10px 0; min-height:22px;">
+        Haz clic en una zona de apuestas para colocar tus fichas
+      </div>
+
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; margin-top:8px;">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <label style="font-size:12px; color:#aaa;">FICHA:</label>
+          <button class="chip-btn chip-50 craps-chip-btn active" data-chip="50">$50</button>
+          <button class="chip-btn chip-100 craps-chip-btn" data-chip="100">$100</button>
+          <button class="chip-btn chip-500 craps-chip-btn" data-chip="500">$500</button>
+          <button id="craps-clear-btn" style="background:#334155; border:none; color:#fff; padding:6px 12px; border-radius:4px; font-size:11px; cursor:pointer;">BORRAR APUESTAS</button>
+        </div>
+
+        <button id="craps-roll-btn" class="casino-btn" style="padding:12px 36px; font-size:16px;">
+          ¡TIRAR DADOS! 🎲
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 8. AMMU-NATION WEAPONS & ARMOR STORE MODAL -->
+  <div id="armory-modal" class="game-modal">
+    <div class="modal-content-panel" style="max-width:700px;">
+      <div class="modal-header">
+        <div class="modal-title">🔫 AMMU-NATION • ARMERÍA Y EQUIPAMIENTO 🔫</div>
+        <button id="armory-close-btn" class="modal-close-btn">✕</button>
+      </div>
+
+      <div class="armory-grid" style="display:grid; grid-template-columns:repeat(2, 1fr); gap:12px; margin:16px 0;">
+        <div class="armory-item-card" style="background:#18181b; border:1px solid #3f3f46; border-radius:8px; padding:12px; display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <div style="font-weight:bold; color:#fff;">Pistola de Combate 9mm</div>
+            <div style="font-size:12px; color:#888;">Munición: 12 balas / cargador</div>
+            <div style="font-weight:bold; color:#00ff88; margin-top:4px;">$500</div>
+          </div>
+          <button class="casino-btn buy-weapon-btn" data-weapon="pistol" data-price="500" style="padding:8px 16px; font-size:12px;">COMPRAR</button>
+        </div>
+
+        <div class="armory-item-card" style="background:#18181b; border:1px solid #3f3f46; border-radius:8px; padding:12px; display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <div style="font-weight:bold; color:#fff;">Subfusil SMG Táctico</div>
+            <div style="font-size:12px; color:#888;">Cadencia rápida (30 balas)</div>
+            <div style="font-weight:bold; color:#00ff88; margin-top:4px;">$2,500</div>
+          </div>
+          <button class="casino-btn buy-weapon-btn" data-weapon="smg" data-price="2500" style="padding:8px 16px; font-size:12px;">COMPRAR</button>
+        </div>
+
+        <div class="armory-item-card" style="background:#18181b; border:1px solid #3f3f46; border-radius:8px; padding:12px; display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <div style="font-weight:bold; color:#fff;">Escopeta Táctica 12G</div>
+            <div style="font-size:12px; color:#888;">Alto impacto a corta distancia</div>
+            <div style="font-weight:bold; color:#00ff88; margin-top:4px;">$4,000</div>
+          </div>
+          <button class="casino-btn buy-weapon-btn" data-weapon="shotgun" data-price="4000" style="padding:8px 16px; font-size:12px;">COMPRAR</button>
+        </div>
+
+        <div class="armory-item-card" style="background:#18181b; border:1px solid #3f3f46; border-radius:8px; padding:12px; display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <div style="font-weight:bold; color:#fff;">Rifle de Asalto Militar</div>
+            <div style="font-size:12px; color:#888;">Precisión y alcance medio (30 balas)</div>
+            <div style="font-weight:bold; color:#00ff88; margin-top:4px;">$8,500</div>
+          </div>
+          <button class="casino-btn buy-weapon-btn" data-weapon="rifle" data-price="8500" style="padding:8px 16px; font-size:12px;">COMPRAR</button>
+        </div>
+
+        <div class="armory-item-card" style="background:#18181b; border:1px solid #3f3f46; border-radius:8px; padding:12px; display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <div style="font-weight:bold; color:#fff;">Francotirador Barret .50</div>
+            <div style="font-size:12px; color:#888;">Mira telescópica de largo alcance</div>
+            <div style="font-weight:bold; color:#00ff88; margin-top:4px;">$25,000</div>
+          </div>
+          <button class="casino-btn buy-weapon-btn" data-weapon="sniper" data-price="25000" style="padding:8px 16px; font-size:12px;">COMPRAR</button>
+        </div>
+
+        <div class="armory-item-card" style="background:#18181b; border:1px solid #3f3f46; border-radius:8px; padding:12px; display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <div style="font-weight:bold; color:#fff;">Chaleco Antibalas Kevlar 100%</div>
+            <div style="font-size:12px; color:#888;">Blindaje corporal completo (+100)</div>
+            <div style="font-weight:bold; color:#00ff88; margin-top:4px;">$1,500</div>
+          </div>
+          <button id="buy-armor-btn" class="casino-btn" style="padding:8px 16px; font-size:12px; background:linear-gradient(90deg, #00f0ff, #0077ff);">EQUIPAR</button>
+        </div>
+      </div>
+
+      <div style="display:flex; justify-content:space-between; align-items:center; background:#000; border:1px solid #27272a; padding:10px 14px; border-radius:6px;">
+        <span style="font-size:13px; color:#aaa;">Caja de Munición Universal (+60 balas):</span>
+        <button id="buy-ammo-btn" class="casino-btn" style="padding:6px 16px; font-size:12px;">COMPRAR MUNICIÓN ($200)</button>
+      </div>
+
+      <div id="armory-status-msg" style="text-align:center; color:#ffd700; font-weight:bold; font-size:14px; margin-top:10px; min-height:20px;"></div>
+    </div>
+  </div>
+
+  <!-- 9. DIAMOND 24/7 LIQUOR & DRINKS STORE MODAL -->
+  <div id="liquor-modal" class="game-modal">
+    <div class="modal-content-panel" style="max-width:720px; border-color:#2a9d8f;">
+      <div class="modal-header">
+        <div class="modal-title" style="color:#2a9d8f;">🍺 DIAMOND 24/7 LIQUOR & DRINKS STORE 🍾</div>
+        <button id="liquor-close-btn" class="modal-close-btn">✕</button>
+      </div>
+
+      <div style="font-size:12px; color:#aaa; margin-top:4px; text-align:center;">
+        Bebidas espirituosas, licores premium y avituallamiento de combate para recuperar vitalidad.
+      </div>
+
+      <div class="liquor-grid" style="display:grid; grid-template-columns:repeat(2, 1fr); gap:12px; margin:16px 0;">
+        <div class="armory-item-card" style="background:#131d1a; border:1px solid #2a9d8f; border-radius:8px; padding:12px; display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <div style="font-weight:bold; color:#fff;">🍺 Cerveza Pißwasser</div>
+            <div style="font-size:12px; color:#888;">Efecto: +25 Salud vital</div>
+            <div style="font-weight:bold; color:#00ff88; margin-top:4px;">$25</div>
+          </div>
+          <button class="casino-btn buy-drink-btn" data-item="beer" data-price="25" data-hp="25" data-armor="0" style="padding:8px 16px; font-size:12px; background:#2a9d8f;">BEBER</button>
+        </div>
+
+        <div class="armory-item-card" style="background:#131d1a; border:1px solid #2a9d8f; border-radius:8px; padding:12px; display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <div style="font-weight:bold; color:#fff;">🥃 Whiskey Richards Reserve</div>
+            <div style="font-size:12px; color:#888;">Efecto: +50 Salud (+Adrenalina)</div>
+            <div style="font-weight:bold; color:#00ff88; margin-top:4px;">$85</div>
+          </div>
+          <button class="casino-btn buy-drink-btn" data-item="whiskey" data-price="85" data-hp="50" data-armor="0" style="padding:8px 16px; font-size:12px; background:#2a9d8f;">BEBER</button>
+        </div>
+
+        <div class="armory-item-card" style="background:#131d1a; border:1px solid #2a9d8f; border-radius:8px; padding:12px; display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <div style="font-weight:bold; color:#fff;">🍸 Vodka Cherenkov Imperial</div>
+            <div style="font-size:12px; color:#888;">Efecto: +80 Salud (+Euforia)</div>
+            <div style="font-weight:bold; color:#00ff88; margin-top:4px;">$160</div>
+          </div>
+          <button class="casino-btn buy-drink-btn" data-item="vodka" data-price="160" data-hp="80" data-armor="0" style="padding:8px 16px; font-size:12px; background:#2a9d8f;">BEBER</button>
+        </div>
+
+        <div class="armory-item-card" style="background:#131d1a; border:1px solid #ffd700; border-radius:8px; padding:12px; display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <div style="font-weight:bold; color:#ffd700;">🍾 Champán Diamond Prestige</div>
+            <div style="font-size:12px; color:#888;">Efecto: +100 Salud & +50 Blindaje Kevlar</div>
+            <div style="font-weight:bold; color:#00ff88; margin-top:4px;">$550</div>
+          </div>
+          <button class="casino-btn buy-drink-btn" data-item="champagne" data-price="550" data-hp="100" data-armor="50" style="padding:8px 16px; font-size:12px; background:linear-gradient(135deg, #ffd700, #ff8800); color:#000; font-weight:bold;">BRINDAR</button>
+        </div>
+
+        <div class="armory-item-card" style="background:#131d1a; border:1px solid #2a9d8f; border-radius:8px; padding:12px; display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <div style="font-weight:bold; color:#fff;">⚡ Sprunk Energy Turbo</div>
+            <div style="font-size:12px; color:#888;">Efecto: +20 Salud (+Energía)</div>
+            <div style="font-weight:bold; color:#00ff88; margin-top:4px;">$40</div>
+          </div>
+          <button class="casino-btn buy-drink-btn" data-item="energy" data-price="40" data-hp="20" data-armor="0" style="padding:8px 16px; font-size:12px; background:#2a9d8f;">BEBER</button>
+        </div>
+
+        <div class="armory-item-card" style="background:#131d1a; border:1px solid #e63946; border-radius:8px; padding:12px; display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <div style="font-weight:bold; color:#ff4d6d;">🩹 Botiquín Médico de Trauma</div>
+            <div style="font-size:12px; color:#888;">Efecto: 100% Curación completa</div>
+            <div style="font-weight:bold; color:#00ff88; margin-top:4px;">$200</div>
+          </div>
+          <button class="casino-btn buy-drink-btn" data-item="medkit" data-price="200" data-hp="100" data-armor="0" style="padding:8px 16px; font-size:12px; background:#e63946;">USAR</button>
+        </div>
+      </div>
+
+      <div id="liquor-status-msg" style="text-align:center; color:#2a9d8f; font-weight:bold; font-size:14px; margin-top:10px; min-height:20px;"></div>
+    </div>
+  </div>
+
+  <!-- 10. LUXURY MOTORSPORT VEHICLE DEALERSHIP MODAL -->
+  <div id="dealership-modal" class="game-modal">
+    <div class="modal-content-panel" style="max-width:850px; border-color:#00f0ff;">
+      <div class="modal-header">
+        <div class="modal-title" style="color:#00f0ff;">🏎️ LUXURY MOTORSPORT • CONCESIONARIO DE VEHÍCULOS 🏎️</div>
+        <button id="dealership-close-btn" class="modal-close-btn">✕</button>
+      </div>
+
+      <div style="font-size:12px; color:#aaa; margin-top:4px; text-align:center;">
+        Adquiere superdeportivos y berlinas de élite. Tu nuevo vehículo se entregará al instante en la bahía de entrega adyacente.
+      </div>
+
+      <div class="dealership-grid" style="display:grid; grid-template-columns:repeat(2, 1fr); gap:12px; margin:16px 0;">
+        <div class="armory-item-card" style="background:#0c1624; border:1px solid #1d3557; border-radius:8px; padding:14px; display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <div style="font-weight:bold; color:#ffd700; font-size:15px;">🚗 Albany President</div>
+            <div style="font-size:12px; color:#aaa;">Sedán de lujo • Vel: 136 km/h • Tracción suave</div>
+            <div style="font-weight:bold; color:#00ff88; font-size:15px; margin-top:4px;">$28,000</div>
+          </div>
+          <button class="casino-btn buy-car-btn" data-vehicle="sedan" data-price="28000" style="padding:10px 18px; font-size:12px; background:#1d3557;">COMPRAR</button>
+        </div>
+
+        <div class="armory-item-card" style="background:#0c1624; border:1px solid #1d3557; border-radius:8px; padding:14px; display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <div style="font-weight:bold; color:#ffd700; font-size:15px;">🚙 Benefactor Dubsta 4x4</div>
+            <div style="font-size:12px; color:#aaa;">SUV Blindado todoterreno • Chasis pesado</div>
+            <div style="font-weight:bold; color:#00ff88; font-size:15px; margin-top:4px;">$55,000</div>
+          </div>
+          <button class="casino-btn buy-car-btn" data-vehicle="suv" data-price="55000" style="padding:10px 18px; font-size:12px; background:#1d3557;">COMPRAR</button>
+        </div>
+
+        <div class="armory-item-card" style="background:#0c1624; border:1px solid #d62828; border-radius:8px; padding:14px; display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <div style="font-weight:bold; color:#ff4d6d; font-size:15px;">🏎️ Vapid Dominator SS</div>
+            <div style="font-size:12px; color:#aaa;">Muscle Car V8 • Vel: 152 km/h • Aceleración brutal</div>
+            <div style="font-weight:bold; color:#00ff88; font-size:15px; margin-top:4px;">$75,000</div>
+          </div>
+          <button class="casino-btn buy-car-btn" data-vehicle="muscle" data-price="75000" style="padding:10px 18px; font-size:12px; background:#d62828;">COMPRAR</button>
+        </div>
+
+        <div class="armory-item-card" style="background:#0c1624; border:1px solid #00f0ff; border-radius:8px; padding:14px; display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <div style="font-weight:bold; color:#00f0ff; font-size:15px;">🏎️ Pegassi Viper GT</div>
+            <div style="font-size:12px; color:#aaa;">Superdeportivo V12 • Vel: 165 km/h • Handling élite</div>
+            <div style="font-weight:bold; color:#00ff88; font-size:15px; margin-top:4px;">$180,000</div>
+          </div>
+          <button class="casino-btn buy-car-btn" data-vehicle="supercar" data-price="180000" style="padding:10px 18px; font-size:12px; background:#00f0ff; color:#000; font-weight:bold;">COMPRAR</button>
+        </div>
+
+        <div class="armory-item-card" style="background:#150e24; border:1px solid #ffd700; border-radius:8px; padding:14px; display:flex; justify-content:space-between; align-items:center; grid-column:span 2;">
+          <div>
+            <div style="font-weight:bold; color:#ffd700; font-size:16px;">🚀 Truffade Nero Phantom (Edición Imperial)</div>
+            <div style="font-size:12px; color:#aaa;">Hiperdeportivo W16 Cuadriturbo • Vel: 188 km/h • El coche más rápido de Million Dollar City</div>
+            <div style="font-weight:bold; color:#00ff88; font-size:16px; margin-top:4px;">$450,000</div>
+          </div>
+          <button class="casino-btn buy-car-btn" data-vehicle="hypercar" data-price="450000" style="padding:12px 24px; font-size:13px; background:linear-gradient(135deg, #ffd700, #ff0055); color:#fff; font-weight:800; border:none; box-shadow:0 0 12px rgba(255,215,0,0.6);">ADQUIRIR HIPERCOCHE</button>
+        </div>
+      </div>
+
+      <div id="dealership-status-msg" style="text-align:center; color:#00f0ff; font-weight:bold; font-size:14px; margin-top:10px; min-height:20px;"></div>
+    </div>
+  </div>
+
+  <!-- ==============================================================
+       11. LSPD CENTRAL JAIL & BUSTED / BAIL MODAL
+       ============================================================== -->
+  <div id="jail-modal" class="game-modal">
+    <div class="modal-content-panel" style="max-width:540px; border-color:#0055ff; box-shadow:0 0 35px rgba(0,85,255,0.45); text-align:center;">
+      <div class="modal-header" style="border-bottom:2px solid #0055ff; justify-content:space-between;">
+        <div class="modal-title" style="color:#00a2ff; font-size:16px; letter-spacing:1px;">
+          🚨 DEPARTAMENTO DE POLICÍA DE MILLION DOLLAR CITY (LSPD)
+        </div>
+        <button id="jail-close-btn" class="modal-close-btn">✕</button>
+      </div>
+
+      <div style="margin:20px 0;">
+        <div style="font-family:'Impact', 'Montserrat', sans-serif; font-size:40px; color:#ff2a2a; text-shadow:0 0 15px rgba(255,42,42,0.8); letter-spacing:4px;">
+          ¡ARRESTADO / BUSTED!
+        </div>
+        <div id="jail-reason-text" style="color:#ffd700; font-size:14px; margin-top:6px; font-weight:bold;">
+          Arrestado por patrullas del LSPD
+        </div>
+        <div id="jail-stars-container" style="color:#ffd700; font-size:24px; margin-top:8px; letter-spacing:4px;">
+          ⭐⭐
+        </div>
+      </div>
+
+      <div style="background:rgba(0,30,70,0.6); border:1px solid #0055ff; border-radius:8px; padding:16px; margin-bottom:20px;">
+        <div style="font-size:12px; color:#aaa; margin-bottom:4px; letter-spacing:1px;">FIANZA PENAL ESTABLECIDA POR EL JUEZ</div>
+        <div id="jail-bail-amount" style="font-size:32px; font-weight:900; color:#00ff88; font-family:'Share Tech Mono', monospace;">
+          $1,000
+        </div>
+        <div id="jail-funds-info" style="font-size:12px; color:#ddd; margin-top:6px;">
+          Efectivo: <span id="jail-user-cash" style="color:#00ff88; font-weight:bold;">$0</span> | Banco: <span id="jail-user-bank" style="color:#00e5ff; font-weight:bold;">$0</span>
+        </div>
+      </div>
+
+      <div id="jail-actions-box" style="display:flex; flex-direction:column; gap:12px;">
+        <button id="jail-pay-bail-btn" class="casino-btn" style="background:linear-gradient(135deg, #0055ff, #00c3ff); color:#fff; font-size:15px; font-weight:bold; padding:14px; border:none; box-shadow:0 0 15px rgba(0,195,255,0.4); cursor:pointer;">
+          💵 PAGAR FIANZA Y SALIR LIBRE
+        </button>
+
+        <button id="jail-serve-sentence-btn" class="casino-btn" style="background:#1a1a24; border:1px solid #555; color:#ccc; font-size:13px; padding:12px; cursor:pointer;">
+          ⏱️ CUMPLIR CONDENA TRAS LAS REJAS (15s)
+        </button>
+      </div>
+
+      <!-- Real-time countdown box when serving sentence -->
+      <div id="jail-sentence-timer-box" style="display:none; background:#111; border:1px solid #ff5500; border-radius:8px; padding:16px; margin-top:10px;">
+        <div style="color:#ffaa00; font-weight:bold; font-size:14px;">CUMPLIENDO CONDENA PENITENCIARIA...</div>
+        <div id="jail-countdown-seconds" style="font-size:36px; font-weight:900; color:#ff3300; font-family:'Share Tech Mono', monospace; margin:8px 0;">
+          15s
+        </div>
+        <div style="font-size:12px; color:#888;">Reflexiona sobre tus actos. Saldrás libre en cuanto expire el tiempo.</div>
+      </div>
+
+      <div id="jail-status-msg" style="margin-top:12px; font-size:13px; min-height:20px; font-weight:bold;"></div>
+    </div>
+  </div>
+
+  <!-- ==============================================================
+       12. PRIVATE GARAGE & FLEET MANAGEMENT MODAL
+       ============================================================== -->
+  <div id="garage-modal" class="game-modal">
+    <div class="modal-content-panel" style="max-width:820px; border-color:#ff0055; box-shadow:0 0 35px rgba(255,0,85,0.4);">
+      <div class="modal-header">
+        <div class="modal-title" style="color:#ff0055;">🚗 GARAJE PRIVADO & GESTIÓN DE VEHÍCULOS 🏎️</div>
+        <button id="garage-close-btn" class="modal-close-btn">✕</button>
+      </div>
+
+      <div style="font-size:12px; color:#aaa; margin-top:4px; text-align:center;">
+        Almacena tus vehículos adquiridos o confiscados, repáralos al 100% y despliégalos al instante en la bahía de salida.
+      </div>
+
+      <div style="display:flex; gap:12px; justify-content:center; margin:16px 0;">
+        <button id="garage-store-current-btn" class="casino-btn" style="background:#2a9d8f; font-size:13px; padding:10px 20px;">
+          📥 GUARDAR VEHÍCULO ACTUAL
+        </button>
+        <button id="garage-open-dealership-btn" class="casino-btn" style="background:#00f0ff; color:#000; font-weight:bold; font-size:13px; padding:10px 20px;">
+          🏎️ COMPRAR MÁS EN CONCESIONARIO
+        </button>
+      </div>
+
+      <div style="font-size:14px; font-weight:bold; color:#ffd700; margin:12px 0 8px 0; border-bottom:1px solid #333; padding-bottom:4px;">
+        VEHÍCULOS EN TU FLOTA PRIVADA
+      </div>
+
+      <div id="garage-vehicles-list" style="display:grid; grid-template-columns:repeat(2, 1fr); gap:12px; max-height:340px; overflow-y:auto; padding-right:4px;">
+        <!-- Dynamically rendered stored vehicles -->
+      </div>
+
+      <div id="garage-status-msg" style="text-align:center; color:#00ff88; font-weight:bold; font-size:14px; margin-top:12px; min-height:22px;"></div>
+    </div>
+  </div>
+
+  <!-- ==============================================================
+       13. SUITE PRESIDENCIAL 107 CUSTOMIZER MODAL
+       ============================================================== -->
+  <div id="suite-customizer-modal" class="game-modal">
+    <div class="modal-content-panel" style="max-width:880px; border-color:#ffd700; box-shadow:0 0 40px rgba(255,215,0,0.45);">
+      <div class="modal-header">
+        <div class="modal-title" style="color:#ffd700;">👑 SUITE PRESIDENCIAL 107 • PERSONALIZACIÓN & MEJORAS 👑</div>
+        <button id="suite-customizer-close-btn" class="modal-close-btn">✕</button>
+      </div>
+
+      <div style="font-size:12px; color:#ccc; margin-top:4px; text-align:center;">
+        Invierte tu fortuna en amueblar el ático más exclusivo de Dynasty 8 Plaza con acabados de ultralujo y decoraciones 3D.
+      </div>
+
+      <div class="suite-upgrades-grid" style="display:grid; grid-template-columns:repeat(2, 1fr); gap:14px; margin:18px 0;">
+        <!-- Shisha VIP -->
+        <div class="armory-item-card" style="background:#17120a; border:1px solid #ffd700; border-radius:8px; padding:14px; display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <div style="font-weight:bold; color:#ffd700; font-size:15px;">💨 Shisha VIP de Humo Dorado</div>
+            <div style="font-size:12px; color:#aaa;">Cachimba artesanal con carbón de coco y animación de humo</div>
+            <div style="font-weight:bold; color:#00ff88; margin-top:4px;">$5,000</div>
+          </div>
+          <button class="casino-btn buy-suite-upgrade-btn" data-upgrade="shisha" data-price="5000" style="padding:10px 18px; font-size:12px; background:#ffd700; color:#000; font-weight:bold;">COMPRAR</button>
+        </div>
+
+        <!-- Pantalla Gigante 8K OLED -->
+        <div class="armory-item-card" style="background:#0e1424; border:1px solid #7928ca; border-radius:8px; padding:14px; display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <div style="font-weight:bold; color:#a77bf3; font-size:15px;">📺 Pantalla Gigante 8K OLED</div>
+            <div style="font-size:12px; color:#aaa;">Cine panorámico con iluminación reactiva RGB en la suite</div>
+            <div style="font-weight:bold; color:#00ff88; margin-top:4px;">$25,000</div>
+          </div>
+          <button class="casino-btn buy-suite-upgrade-btn" data-upgrade="screen8k" data-price="25000" style="padding:10px 18px; font-size:12px; background:#7928ca;">COMPRAR</button>
+        </div>
+
+        <!-- Equipo Hi-Fi -->
+        <div class="armory-item-card" style="background:#0c1c18; border:1px solid #00ff88; border-radius:8px; padding:14px; display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <div style="font-weight:bold; color:#00ff88; font-size:15px;">🔊 Sistema de Sonido Hi-Fi Studio Pro</div>
+            <div style="font-size:12px; color:#aaa;">Torres acústicas Bang & Olufsen con ecualizadores de neón</div>
+            <div style="font-weight:bold; color:#00ff88; margin-top:4px;">$12,000</div>
+          </div>
+          <button class="casino-btn buy-suite-upgrade-btn" data-upgrade="hifi_audio" data-price="12000" style="padding:10px 18px; font-size:12px; background:#00ff88; color:#000; font-weight:bold;">COMPRAR</button>
+        </div>
+
+        <!-- Cama Imperial Oro -->
+        <div class="armory-item-card" style="background:#200c14; border:1px solid #ff0055; border-radius:8px; padding:14px; display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <div style="font-weight:bold; color:#ff4d6d; font-size:15px;">👑 Cama Imperial King-Size de Oro y Seda</div>
+            <div style="font-size:12px; color:#aaa;">Dosel bañado en oro de 24K y sábanas de seda roja egipcia</div>
+            <div style="font-weight:bold; color:#00ff88; margin-top:4px;">$40,000</div>
+          </div>
+          <button class="casino-btn buy-suite-upgrade-btn" data-upgrade="gold_bed" data-price="40000" style="padding:10px 18px; font-size:12px; background:#ff0055;">COMPRAR</button>
+        </div>
+
+        <!-- Jacuzzi Privado -->
+        <div class="armory-item-card" style="background:#091a24; border:1px solid #00f0ff; border-radius:8px; padding:14px; display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <div style="font-weight:bold; color:#00f0ff; font-size:15px;">🛁 Jacuzzi Hidromasaje Privado con Neones</div>
+            <div style="font-size:12px; color:#aaa;">Bañera circular de mármol negro con agua termal burbujeante</div>
+            <div style="font-weight:bold; color:#00ff88; margin-top:4px;">$75,000</div>
+          </div>
+          <button class="casino-btn buy-suite-upgrade-btn" data-upgrade="jacuzzi" data-price="75000" style="padding:10px 18px; font-size:12px; background:#00f0ff; color:#000; font-weight:bold;">COMPRAR</button>
+        </div>
+
+        <!-- Minibar VIP -->
+        <div class="armory-item-card" style="background:#19140a; border:1px solid #ffaa00; border-radius:8px; padding:14px; display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <div style="font-weight:bold; color:#ffaa00; font-size:15px;">🍸 Minibar VIP & Cava de Champán</div>
+            <div style="font-size:12px; color:#aaa;">Mueble bar de nogal con licores prémium ilimitados</div>
+            <div style="font-weight:bold; color:#00ff88; margin-top:4px;">$15,000</div>
+          </div>
+          <button class="casino-btn buy-suite-upgrade-btn" data-upgrade="minibar" data-price="15000" style="padding:10px 18px; font-size:12px; background:#ffaa00; color:#000; font-weight:bold;">COMPRAR</button>
+        </div>
+      </div>
+
+      <div id="suite-customizer-status-msg" style="text-align:center; color:#ffd700; font-weight:bold; font-size:14px; margin-top:10px; min-height:22px;"></div>
+    </div>
+  </div>
+
+  <!-- ==============================================================
+       14. STREET DEALER MODAL (SUSTANCIAS Y ESTUPEFACIENTES)
+       ============================================================== -->
+  <div id="dealer-modal" class="game-modal">
+    <div class="modal-content-panel" style="max-width:760px; border-color:#9d4edd; box-shadow:0 0 35px rgba(157,78,221,0.5);">
+      <div class="modal-header">
+        <div class="modal-title" style="color:#c77dff;">☠️ DEALER CALLEJERO • QUÍMICA & SUSTANCIAS 💊</div>
+        <button id="dealer-close-btn" class="modal-close-btn">✕</button>
+      </div>
+
+      <div style="font-size:12px; color:#aaa; margin-top:4px; text-align:center;">
+        "Shh... habla bajo. Mercancía pura importada. Efectos intensos garantizados... Cuidado con mezclar o te desmayas."
+      </div>
+
+      <div class="dealer-grid" style="display:grid; grid-template-columns:repeat(2, 1fr); gap:12px; margin:16px 0;">
+        <!-- Hierba Cali 4K -->
+        <div class="armory-item-card" style="background:#0e1b12; border:1px solid #52b788; border-radius:8px; padding:12px; display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <div style="font-weight:bold; color:#74c69d; font-size:14px;">🌿 Hierba Cali Kush 4K</div>
+            <div style="font-size:12px; color:#888;">Tono verde relajante, zoom suave y paz mental (+20 HP)</div>
+            <div style="font-weight:bold; color:#00ff88; margin-top:4px;">$200</div>
+          </div>
+          <button class="casino-btn buy-substance-btn" data-substance="weed" data-price="200" data-toxicity="25" style="padding:8px 16px; font-size:12px; background:#52b788;">CONSUMIR</button>
+        </div>
+
+        <!-- Pastillas Psicodélicas 777 -->
+        <div class="armory-item-card" style="background:#1d0e28; border:1px solid #e0aaff; border-radius:8px; padding:12px; display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <div style="font-weight:bold; color:#e0aaff; font-size:14px;">💊 Pastillas Psicodélicas 777</div>
+            <div style="font-size:12px; color:#888;">Distorsión cromática, rotación arcoíris continua y alucinación</div>
+            <div style="font-weight:bold; color:#00ff88; margin-top:4px;">$600</div>
+          </div>
+          <button class="casino-btn buy-substance-btn" data-substance="pills" data-price="600" data-toxicity="45" style="padding:8px 16px; font-size:12px; background:#c77dff; color:#000; font-weight:bold;">CONSUMIR</button>
+        </div>
+
+        <!-- Polvo Estelar -->
+        <div class="armory-item-card" style="background:#221808; border:1px solid #ffd166; border-radius:8px; padding:12px; display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <div style="font-weight:bold; color:#ffd166; font-size:14px;">⚡ Polvo Estelar Nitro</div>
+            <div style="font-size:12px; color:#888;">Supervelocidad extrema (+80% sprint), visión hipersaturada</div>
+            <div style="font-weight:bold; color:#00ff88; margin-top:4px;">$1,500</div>
+          </div>
+          <button class="casino-btn buy-substance-btn" data-substance="dust" data-price="1500" data-toxicity="50" style="padding:8px 16px; font-size:12px; background:#ffd166; color:#000; font-weight:bold;">CONSUMIR</button>
+        </div>
+
+        <!-- Purple Lean Especial -->
+        <div class="armory-item-card" style="background:#160920; border:1px solid #7209b7; border-radius:8px; padding:12px; display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <div style="font-weight:bold; color:#b5179e; font-size:14px;">🍇 Purple Lean Callejero</div>
+            <div style="font-size:12px; color:#888;">Visión onírica púrpura, cámara lenta y tambaleo pesado</div>
+            <div style="font-weight:bold; color:#00ff88; margin-top:4px;">$800</div>
+          </div>
+          <button class="casino-btn buy-substance-btn" data-substance="lean" data-price="800" data-toxicity="40" style="padding:8px 16px; font-size:12px; background:#7209b7;">CONSUMIR</button>
+        </div>
+      </div>
+
+      <div id="dealer-status-msg" style="text-align:center; color:#c77dff; font-weight:bold; font-size:14px; margin-top:10px; min-height:20px;"></div>
+    </div>
+  </div>
+
+  <!-- ==============================================================
+       15. FULLSCREEN BLACKOUT / FAINTING (DESMAYO) OVERLAY
+       ============================================================== -->
+  <div id="blackout-overlay" style="position:fixed; top:0; left:0; width:100vw; height:100vh; background:#000; z-index:999999; pointer-events:none; opacity:0; transition:opacity 0.9s cubic-bezier(0.4, 0, 0.2, 1); display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center;">
+    <div style="font-family:'Impact', 'Montserrat', sans-serif; font-size:46px; color:#ff2a4d; text-shadow:0 0 25px rgba(255,42,77,0.9); letter-spacing:5px;">
+      TE HAS DESMAYADO
+    </div>
+    <div id="blackout-reason" style="font-size:16px; color:#aaa; margin-top:14px; max-width:600px; line-height:1.6;">
+      Sobredosis / intoxicación extrema. Perdiste el conocimiento por completo...
+    </div>
+    <div style="font-size:13px; color:#666; margin-top:20px; font-style:italic;">
+      Despertando en la acera de Million Dollar City...
+    </div>
+  </div>
+
   <!-- Wasted & Victory Screens -->
   <div id="wasted-screen">
     <div class="wasted-text">WASTED</div>
@@ -685,11 +1426,25 @@
     </button>
   </div>
 
-  <!-- Socket.IO Client Script (Loaded from Express server) -->
-  <script src="/socket.io/socket.io.js"></script>
+  <!-- Socket.IO Client Script (Optional for Multiplayer) -->
+  <script src="./socket.io/socket.io.js" onerror="console.warn('Socket.io server offline, running in standalone mode')"></script>
 
-  <!-- Main Game Entry Point -->
-  <script type="module" src="/js/main.js?v=2.1"></script>
+  <!-- Main Game Bundled as IIFE (Universal compatibility, runs offline & online) -->
+  <script src="./js/bundle.iife.js?v=3.1.0"></script>
+
+  <!-- Stall Recovery & Anti-Hang Guard -->
+  <script>
+    setTimeout(function() {
+      var loader = document.getElementById('loading-screen');
+      if (loader && !loader.classList.contains('fade-out')) {
+        var status = document.getElementById('loading-status-text');
+        if (status) {
+          status.style.color = '#ffcc00';
+          status.innerHTML = '⚠️ La carga está tardando debido a la caché del navegador.<br><button onclick="localStorage.clear(); sessionStorage.clear(); window.location.href=window.location.pathname+\'?reload=\'+Date.now();" style="margin-top:14px;padding:10px 22px;background:#00f0ff;color:#000;border:none;border-radius:6px;cursor:pointer;font-weight:900;font-size:14px;box-shadow:0 0 15px rgba(0,240,255,0.6);">⚡ FORZAR RECARGA LIMPIA (CLICK AQUÍ)</button>';
+        }
+      }
+    }, 6000);
+  </script>
 
 </body>
 </html>

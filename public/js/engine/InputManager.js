@@ -44,24 +44,48 @@ export class InputManager {
     window.addEventListener('keydown', (e) => this.onKeyDown(e));
     window.addEventListener('keyup', (e) => this.onKeyUp(e));
 
-    // Pointer Lock & Mouse Look
-    this.domElement.addEventListener('click', () => {
-      // If modal or UI open, don't lock
+    // Pointer Lock & Mouse Look Request
+    const requestLock = (e) => {
+      // Don't capture when typing in inputs or interacting with open modals
       if (document.body.classList.contains('ui-active')) return;
-      if (!this.mouse.isLocked && document.pointerLockElement !== this.domElement) {
-        this.domElement.requestPointerLock?.();
-      }
-    });
+      if (e?.target && e.target.closest('.game-modal.visible, input, textarea, button, .lan-lobby-panel')) return;
 
-    document.addEventListener('pointerlockchange', () => {
-      this.mouse.isLocked = document.pointerLockElement === this.domElement;
-    });
+      if (!this.mouse.isLocked) {
+        try {
+          (this.domElement.requestPointerLock || document.body.requestPointerLock)?.call(this.domElement);
+        } catch (err) {}
+      }
+    };
+
+    this.domElement.addEventListener('click', requestLock);
+    this.domElement.addEventListener('mousedown', requestLock);
+    window.addEventListener('click', requestLock);
+
+    const updateLockState = () => {
+      this.mouse.isLocked = !!document.pointerLockElement;
+    };
+    document.addEventListener('pointerlockchange', updateLockState);
+    document.addEventListener('mozpointerlockchange', updateLockState);
+
+    // Mouse movement accumulation with fallback drag-look
+    let lastClientX = null;
+    let lastClientY = null;
 
     document.addEventListener('mousemove', (e) => {
       if (this.mouse.isLocked) {
-        this.mouse.deltaX = e.movementX || 0;
-        this.mouse.deltaY = e.movementY || 0;
+        const dx = e.movementX !== undefined ? e.movementX : (lastClientX !== null ? e.clientX - lastClientX : 0);
+        const dy = e.movementY !== undefined ? e.movementY : (lastClientY !== null ? e.clientY - lastClientY : 0);
+        this.mouse.deltaX += dx;
+        this.mouse.deltaY += dy;
+      } else if (this.mouse.isLeftDown || this.mouse.isRightDown) {
+        // Fallback smooth drag-look if pointerlock is restricted by policy
+        if (lastClientX !== null && lastClientY !== null) {
+          this.mouse.deltaX += (e.clientX - lastClientX);
+          this.mouse.deltaY += (e.clientY - lastClientY);
+        }
       }
+      lastClientX = e.clientX;
+      lastClientY = e.clientY;
     });
 
     window.addEventListener('mousedown', (e) => {
@@ -74,9 +98,24 @@ export class InputManager {
       if (e.button === 2) this.mouse.isRightDown = false;
     });
 
+    // Reset all pressed inputs when tab/window loses focus
+    window.addEventListener('blur', () => {
+      for (const k in this.keys) {
+        this.keys[k] = false;
+      }
+      this.mouse.deltaX = 0;
+      this.mouse.deltaY = 0;
+      this.mouse.isLeftDown = false;
+      this.mouse.isRightDown = false;
+      lastClientX = null;
+      lastClientY = null;
+    });
+
     // Prevent context menu on right click (ADS aim)
     window.addEventListener('contextmenu', (e) => {
-      e.preventDefault();
+      if (!e.target.closest('input, textarea')) {
+        e.preventDefault();
+      }
     });
   }
 
@@ -85,133 +124,127 @@ export class InputManager {
       return; // typing in chat or input
     }
 
-    switch (e.code) {
-      case 'KeyW':
-      case 'ArrowUp':
-        this.keys.forward = true;
-        break;
-      case 'KeyS':
-      case 'ArrowDown':
-        this.keys.backward = true;
-        break;
-      case 'KeyA':
-      case 'ArrowLeft':
-        this.keys.left = true;
-        break;
-      case 'KeyD':
-      case 'ArrowRight':
-        this.keys.right = true;
-        break;
-      case 'ShiftLeft':
-      case 'ShiftRight':
-        this.keys.sprint = true;
-        break;
-      case 'Space':
-        this.keys.jump = true;
-        break;
-      case 'KeyE':
-        this.keys.interact = true;
-        this.interactionTriggered = true;
-        break;
-      case 'KeyF':
-        this.keys.vehicle = true;
-        this.vehicleTriggered = true;
-        break;
-      case 'KeyM':
-      case 'KeyP':
-        this.keys.phone = true;
-        this.phoneTriggered = true;
-        break;
-      case 'Tab':
-        e.preventDefault();
-        this.keys.inventory = true;
-        this.tabTriggered = true;
-        break;
-      case 'KeyR':
-        this.keys.reload = true;
-        break;
-      case 'KeyH':
-        this.keys.horn = true;
-        this.hornTriggered = true;
-        break;
-      case 'KeyQ':
-        this.keys.radio = true;
-        this.radioTriggered = true;
-        break;
-      case 'Digit1':
-        this.keys.weapon1 = true;
-        break;
-      case 'Digit2':
-        this.keys.weapon2 = true;
-        break;
-      case 'Digit3':
-        this.keys.weapon3 = true;
-        break;
-      case 'Digit4':
-        this.keys.weapon4 = true;
-        break;
+    const code = e.code;
+    const key = (e.key || '').toLowerCase();
+
+    // WASD & Arrow Keys
+    if (code === 'KeyW' || code === 'ArrowUp' || key === 'w' || key === 'arrowup') {
+      this.keys.forward = true;
+    }
+    if (code === 'KeyS' || code === 'ArrowDown' || key === 's' || key === 'arrowdown') {
+      this.keys.backward = true;
+    }
+    if (code === 'KeyA' || code === 'ArrowLeft' || key === 'a' || key === 'arrowleft') {
+      this.keys.left = true;
+    }
+    if (code === 'KeyD' || code === 'ArrowRight' || key === 'd' || key === 'arrowright') {
+      this.keys.right = true;
+    }
+
+    if (code === 'ShiftLeft' || code === 'ShiftRight' || key === 'shift') {
+      this.keys.sprint = true;
+    }
+    if (code === 'Space' || key === ' ') {
+      this.keys.jump = true;
+    }
+    if (code === 'KeyE' || key === 'e') {
+      this.keys.interact = true;
+      this.interactionTriggered = true;
+    }
+    if (code === 'KeyF' || key === 'f') {
+      this.keys.vehicle = true;
+      this.vehicleTriggered = true;
+    }
+    if (code === 'KeyM' || code === 'KeyP' || key === 'm' || key === 'p') {
+      this.keys.phone = true;
+      this.phoneTriggered = true;
+    }
+    if (code === 'Tab' || key === 'tab') {
+      e.preventDefault();
+      this.keys.inventory = true;
+      this.tabTriggered = true;
+    }
+    if (code === 'KeyR' || key === 'r') {
+      this.keys.reload = true;
+    }
+    if (code === 'KeyH' || key === 'h') {
+      this.keys.horn = true;
+      this.hornTriggered = true;
+    }
+    if (code === 'KeyQ' || key === 'q') {
+      this.keys.radio = true;
+      this.radioTriggered = true;
+    }
+    if (code === 'Digit1' || key === '1') {
+      this.keys.weapon1 = true;
+    }
+    if (code === 'Digit2' || key === '2') {
+      this.keys.weapon2 = true;
+    }
+    if (code === 'Digit3' || key === '3') {
+      this.keys.weapon3 = true;
+    }
+    if (code === 'Digit4' || key === '4') {
+      this.keys.weapon4 = true;
     }
   }
 
   onKeyUp(e) {
-    switch (e.code) {
-      case 'KeyW':
-      case 'ArrowUp':
-        this.keys.forward = false;
-        break;
-      case 'KeyS':
-      case 'ArrowDown':
-        this.keys.backward = false;
-        break;
-      case 'KeyA':
-      case 'ArrowLeft':
-        this.keys.left = false;
-        break;
-      case 'KeyD':
-      case 'ArrowRight':
-        this.keys.right = false;
-        break;
-      case 'ShiftLeft':
-      case 'ShiftRight':
-        this.keys.sprint = false;
-        break;
-      case 'Space':
-        this.keys.jump = false;
-        break;
-      case 'KeyE':
-        this.keys.interact = false;
-        break;
-      case 'KeyF':
-        this.keys.vehicle = false;
-        break;
-      case 'KeyM':
-      case 'KeyP':
-        this.keys.phone = false;
-        break;
-      case 'Tab':
-        this.keys.inventory = false;
-        break;
-      case 'KeyR':
-        this.keys.reload = false;
-        break;
-      case 'KeyH':
-        this.keys.horn = false;
-        break;
-      case 'KeyQ':
-        this.keys.radio = false;
-        break;
-      case 'Digit1':
-        this.keys.weapon1 = false;
-        break;
-      case 'Digit2':
-        this.keys.weapon2 = false;
-        break;
-      case 'Digit3':
-        this.keys.weapon3 = false;
-        break;
-      case 'Digit4':
-        this.keys.weapon4 = false;
-        break;
+    const code = e.code;
+    const key = (e.key || '').toLowerCase();
+
+    // WASD & Arrow Keys
+    if (code === 'KeyW' || code === 'ArrowUp' || key === 'w' || key === 'arrowup') {
+      this.keys.forward = false;
+    }
+    if (code === 'KeyS' || code === 'ArrowDown' || key === 's' || key === 'arrowdown') {
+      this.keys.backward = false;
+    }
+    if (code === 'KeyA' || code === 'ArrowLeft' || key === 'a' || key === 'arrowleft') {
+      this.keys.left = false;
+    }
+    if (code === 'KeyD' || code === 'ArrowRight' || key === 'd' || key === 'arrowright') {
+      this.keys.right = false;
+    }
+
+    if (code === 'ShiftLeft' || code === 'ShiftRight' || key === 'shift') {
+      this.keys.sprint = false;
+    }
+    if (code === 'Space' || key === ' ') {
+      this.keys.jump = false;
+    }
+    if (code === 'KeyE' || key === 'e') {
+      this.keys.interact = false;
+    }
+    if (code === 'KeyF' || key === 'f') {
+      this.keys.vehicle = false;
+    }
+    if (code === 'KeyM' || code === 'KeyP' || key === 'm' || key === 'p') {
+      this.keys.phone = false;
+    }
+    if (code === 'Tab' || key === 'tab') {
+      this.keys.inventory = false;
+    }
+    if (code === 'KeyR' || key === 'r') {
+      this.keys.reload = false;
+    }
+    if (code === 'KeyH' || key === 'h') {
+      this.keys.horn = false;
+    }
+    if (code === 'KeyQ' || key === 'q') {
+      this.keys.radio = false;
+    }
+    if (code === 'Digit1' || key === '1') {
+      this.keys.weapon1 = false;
+    }
+    if (code === 'Digit2' || key === '2') {
+      this.keys.weapon2 = false;
+    }
+    if (code === 'Digit3' || key === '3') {
+      this.keys.weapon3 = false;
+    }
+    if (code === 'Digit4' || key === '4') {
+      this.keys.weapon4 = false;
     }
   }
 

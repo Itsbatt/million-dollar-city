@@ -21,11 +21,11 @@ export class LightingManager {
     // Main Directional Moon / Skylight
     this.sunLight = new THREE.DirectionalLight(0xa5c2ff, 2.2);
     this.sunLight.position.set(70, 130, 80);
-    this.sunLight.castShadow = true;
+    this.sunLight.castShadow = window.__MDC_GRAPHICS_PRESET?.shadows === true;
 
-    // Shadow Map Tuning
-    this.sunLight.shadow.mapSize.width = 2048;
-    this.sunLight.shadow.mapSize.height = 2048;
+    // Shadow Map Tuning: 1024x1024 provides crisp PCF shadows when enabled
+    this.sunLight.shadow.mapSize.width = 1024;
+    this.sunLight.shadow.mapSize.height = 1024;
     this.sunLight.shadow.camera.near = 10;
     this.sunLight.shadow.camera.far = 350;
 
@@ -49,6 +49,10 @@ export class LightingManager {
     this.scene.add(this.casinoGlow);
 
     this.time = 0;
+
+    window.addEventListener('quality:changed', (e) => {
+      this.applyQuality(e.detail);
+    });
   }
 
   setZone(zoneName) {
@@ -66,6 +70,55 @@ export class LightingManager {
       this.hemiLight.intensity = 2.2;
 
       this.sunLight.intensity = 0.3;
+      this.sunLight.castShadow = false; // Disable expensive outdoor shadows while in interior
+      this.fillLight.intensity = 0.3;
+    } else if (zoneName === 'BANK_INTERIOR') {
+      // Sleek marble & steel banking interior
+      this.scene.background.setHex(0x0a1128);
+      this.scene.fog.color.setHex(0x0a1128);
+      this.scene.fog.density = 0.0008;
+
+      this.ambientLight.color.setHex(0xdde8f5);
+      this.ambientLight.intensity = 2.8;
+
+      this.hemiLight.color.setHex(0xcfd8dc);
+      this.hemiLight.groundColor.setHex(0x1a2332);
+      this.hemiLight.intensity = 2.0;
+
+      this.sunLight.intensity = 0.4;
+      this.sunLight.castShadow = false;
+      this.fillLight.intensity = 0.4;
+    } else if (zoneName === 'ARMORY_INTERIOR') {
+      // Tactical gunmetal & wood gun shop
+      this.scene.background.setHex(0x141416);
+      this.scene.fog.color.setHex(0x141416);
+      this.scene.fog.density = 0.0008;
+
+      this.ambientLight.color.setHex(0xffeedd);
+      this.ambientLight.intensity = 2.6;
+
+      this.hemiLight.color.setHex(0xffdfa8);
+      this.hemiLight.groundColor.setHex(0x27272a);
+      this.hemiLight.intensity = 2.2;
+
+      this.sunLight.intensity = 0.4;
+      this.sunLight.castShadow = false;
+      this.fillLight.intensity = 0.4;
+    } else if (zoneName === 'PENTHOUSE_CORRIDOR' || zoneName === 'PRESIDENTIAL_SUITE') {
+      // Warm luxury gold & mahogany penthouse ambiance
+      this.scene.background.setHex(0x120a10);
+      this.scene.fog.color.setHex(0x120a10);
+      this.scene.fog.density = 0.0007;
+
+      this.ambientLight.color.setHex(0xffeedb);
+      this.ambientLight.intensity = 2.8;
+
+      this.hemiLight.color.setHex(0xffdfa8);
+      this.hemiLight.groundColor.setHex(0x3a1018);
+      this.hemiLight.intensity = 2.4;
+
+      this.sunLight.intensity = 0.3;
+      this.sunLight.castShadow = false;
       this.fillLight.intensity = 0.3;
     } else {
       // Metropolis outdoor night skyline
@@ -81,7 +134,21 @@ export class LightingManager {
       this.hemiLight.intensity = 1.8;
 
       this.sunLight.intensity = 2.2;
+      this.sunLight.castShadow = window.__MDC_GRAPHICS_PRESET?.shadows === true;
       this.fillLight.intensity = 1.3;
+    }
+  }
+
+  applyQuality(preset) {
+    if (!preset) return;
+    this.sunLight.castShadow = !!preset.shadows;
+    if (preset.id === 'VERY_LOW') {
+      this.fillLight.visible = false;
+    } else {
+      this.fillLight.visible = true;
+    }
+    if (preset.fogDensityMultiplier && this.scene.fog) {
+      this.scene.fog.density = 0.0016 * preset.fogDensityMultiplier;
     }
   }
 

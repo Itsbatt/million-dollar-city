@@ -495,9 +495,15 @@ export class PhoneUI {
 
   getCityLandmarks() {
     return [
+      { id: 'dynasty8_plaza', name: 'Dynasty 8 Plaza (Suite Presidencial)', type: 'penthouse', worldX: 29, worldZ: -110, color: '#ffd700', icon: '👑', desc: 'Ático Presidencial de Lujo • Objetivo Final del Millón' },
       { id: 'casino_mirage', name: 'Casino The Royal Mirage', type: 'casino', worldX: -42, worldZ: 50, color: '#ffd700', icon: '🎰', desc: 'Ruleta, Blackjack, Tragaperras y Mega Rueda' },
       { id: 'bank_vault21', name: 'Banco Central Vault 21', type: 'bank', worldX: 45, worldZ: 38, color: '#00ff88', icon: '🏦', desc: 'Cajeros, Transferencias y Bóveda del Golpe' },
       { id: 'ammunation', name: 'Ammu-Nation Armería', type: 'weapons', worldX: 45, worldZ: -45, color: '#ff3344', icon: '🎯', desc: 'Venta de rifles, chalecos antibalas y munición' },
+      { id: 'lspd_hq', name: 'Comisaría Central LSPD & Prisión', type: 'police', worldX: -28, worldZ: -130, color: '#0055ff', icon: '🚓', desc: 'Sede policial, celdas y pago de fianzas' },
+      { id: 'dealership', name: 'Concesionario Luxury Motorsport', type: 'cars', worldX: 25, worldZ: 120, color: '#00f0ff', icon: '🏎️', desc: 'Superdeportivos e hipercoches de élite' },
+      { id: 'liquor_store', name: 'Licorería 24/7 Diamond Drinks', type: 'store', worldX: -27, worldZ: -15, color: '#52b788', icon: '🍺', desc: 'Bebidas energéticas, licores y botiquines' },
+      { id: 'street_dealer', name: 'Dealer Callejero Clandestino', type: 'dealer', worldX: -26, worldZ: 18, color: '#c77dff', icon: '💊', desc: 'Química clandestina y estupefacientes' },
+      { id: 'chop_shop', name: 'Garaje Chop Shop & Flota Privada', type: 'garage', worldX: 18, worldZ: -90, color: '#ff0055', icon: '🚗', desc: 'Gestión de flota, guardado y tuning' },
       { id: 'club_velvet', name: 'Club Nocturno Velvet', type: 'nightlife', worldX: -42, worldZ: -50, color: '#ff007f', icon: '🍸', desc: 'Zona VIP de ocio nocturno y música synth' },
       { id: 'boutiques', name: 'Boutiques & Café Terraza', type: 'commercial', worldX: 45, worldZ: 85, color: '#ff9e00', icon: '☕', desc: 'Zona comercial y terrazas al aire libre' },
       { id: 'centurion_tower', name: 'Torre Centurion Financial', type: 'office', worldX: -50, worldZ: 110, color: '#3a86ff', icon: '🏢', desc: 'Rascacielos financiero' },

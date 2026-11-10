@@ -32,9 +32,9 @@ export class Player {
     this.isSuperSpeed = false;
     this.cameraPitch = 0;
 
-    // Movement Speeds
-    this.walkSpeed = 4.2;
-    this.runSpeed = 8.6;
+    // Movement Speeds (Snappy & Responsive)
+    this.walkSpeed = 5.2;
+    this.runSpeed = 9.6;
     this.jumpForce = 7.5;
     this.gravity = 20.0;
 
@@ -362,9 +362,9 @@ export class Player {
         this.heading = cameraYaw + Math.PI;
         this.mesh.rotation.y = this.heading;
       }
-      // Decelerate
-      this.velocity.x *= 0.7;
-      this.velocity.z *= 0.7;
+      // Snappy Deceleration (No sliding)
+      this.velocity.x *= 0.45;
+      this.velocity.z *= 0.45;
       if (Math.abs(this.velocity.x) < 0.05) this.velocity.x = 0;
       if (Math.abs(this.velocity.z) < 0.05) this.velocity.z = 0;
       this.animState = 'idle';
@@ -414,8 +414,11 @@ export class Player {
 
   resolveCollisions(targetPos, colliders) {
     const playerRadius = 0.45;
-    for (const box of colliders) {
-      if (!box) continue;
+    for (const item of colliders) {
+      if (!item) continue;
+      const box = item.box || item;
+      if (!box.min || !box.max) continue;
+
       // Skip interior colliders if player is outside in the city (or vice versa)
       if (box.max.y < -10 && targetPos.y > -10) continue;
       if (box.min.y > -10 && targetPos.y < -10) continue;
@@ -578,6 +581,9 @@ export class Player {
   }
 
   getPosition() {
+    if (this.inVehicle && this.currentVehicle) {
+      return this.currentVehicle.position;
+    }
     return this.position;
   }
 }

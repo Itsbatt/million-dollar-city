@@ -7,7 +7,7 @@ export class RouletteGame {
     this.isSpinning = false;
     this.lastResult = null;
     this.minBet = 10;
-    this.maxBet = 2000;
+    this.maxBet = Infinity; // Sin límite de apuesta
 
     // European Roulette Numbers Wheel Sequence
     this.wheelNumbers = [
@@ -27,8 +27,8 @@ export class RouletteGame {
   addBet(betType, amount, targetNumber = null) {
     if (this.isSpinning) return { success: false, message: 'La ruleta ya está girando' };
 
-    if (amount < this.minBet || amount > this.maxBet) {
-      return { success: false, message: `La ficha debe ser entre $${this.minBet} y $${this.maxBet}` };
+    if (amount < this.minBet) {
+      return { success: false, message: `La ficha mínima es de $${this.minBet}` };
     }
 
     if (this.economy.getCash() < amount) {
