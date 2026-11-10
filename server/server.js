@@ -1017,9 +1017,9 @@ io.on('connection', (socket) => {
   });
 });
 
-server.listen(PORT, () => {
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`================================================================`);
   console.log(`  ★ MILLION DOLLAR CITY — MULTIPLAYER ONLINE REAL-TIME SERVER ★`);
-  console.log(`  Running on: http://localhost:${PORT}`);
+  console.log(`  Running on: http://0.0.0.0:${PORT}`);
   console.log(`================================================================`);
 });

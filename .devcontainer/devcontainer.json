@@ -9,6 +9,5 @@
       "visibility": "public"
     }
   },
-  "postCreateCommand": "npm install",
-  "postStartCommand": "node server/server.js"
+  "postCreateCommand": "npm install"
 }
